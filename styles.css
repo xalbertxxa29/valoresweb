@@ -1,0 +1,240 @@
+:root {
+  --color-primary: #e70909;
+  --gray-300: #ccc;
+  --radius: 0.5rem;
+  --transition: 0.3s ease;
+}
+
+/* 1. Reset global */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 2. Body y fondo */
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: url('imagenes/background.png') center/cover no-repeat;
+  color: #fff;
+  animation: fadeSlideUp 0.8s var(--transition) forwards;
+}
+
+/* 3. Header/logo */
+.site-header {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+}
+.header-logo {
+  height: 150px;
+  animation: pulse 3s infinite;
+}
+
+/* 4. Contenedor de login */
+.login-container {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2rem;
+  border-radius: var(--radius);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* 5. Título */
+.login-title {
+  margin-bottom: 1.5rem;
+  font-size: 1.75rem;
+  color: #fff;
+}
+
+/* 6. Card */
+.login-card {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.login-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+}
+
+/* 7. Inputs */
+.input-group {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 1rem;
+}
+.input-group label {
+  display: block;
+  text-align: left;
+  margin-bottom: 0.25rem;
+  font-weight: bold;
+  color: #333;
+}
+.input-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.input-group input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 8px rgba(231, 9, 9, 0.3);
+  outline: none;
+}
+
+/* 8. Password + eye */
+.password-field {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 1rem;
+}
+.password-field input {
+  padding-right: 2.5rem;
+}
+.password-field button {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  width: 1.5rem;
+  height: 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-300);
+  transition: color var(--transition), transform var(--transition);
+}
+.password-field button:hover {
+  color: var(--color-primary);
+  transform: rotate(20deg);
+}
+
+/* 9. Recordarme */
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+.remember-me label {
+  color: #333;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* 10. Botón de login */
+#login-btn {
+  width: 100%;
+  max-width: 360px;
+  padding: 0.75rem;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+#login-btn:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(231, 9, 9, 0.4);
+}
+#login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 11. Enlaces */
+.links a {
+  color: var(--color-primary);
+  text-decoration: none;
+  display: block;
+  margin-top: 1rem;
+}
+.links a:hover {
+  text-decoration: underline;
+}
+
+/* 12. Mensaje de error inline (si lo usas) */
+#error-message {
+  color: var(--color-primary);
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  display: none;
+}
+#error-message.show {
+  display: block;
+}
+
+/* 13. Overlay de loading full‑screen */
+#loadingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+#loadingOverlay[hidden="false"],
+#loadingOverlay:not([hidden]) {
+  display: flex;
+}
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 8px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* 15. Keyframes */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 16. Ocultar clear nativo */
+input::-ms-clear,
+input::-ms-reveal,
+input::-webkit-search-decoration,
+input::-webkit-search-cancel-button,
+input::-webkit-search-results-button,
+input::-webkit-search-results-decoration {
+  display: none;
+}
+.login-icon {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.login-icon img {
+  width: 4rem;
+  height: auto;
+  display: inline-block;
+  background: rgba(255,255,255,0.2);
+  padding: 0.5rem;
+  border-radius: 50%;
+}
+

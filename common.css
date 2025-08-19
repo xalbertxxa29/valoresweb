@@ -1,0 +1,68 @@
+/* ==========================================================================
+   Estilos Comunes para toda la Plataforma Liderman
+   ========================================================================== */
+
+/* Variables de Color */
+:root {
+  --color-primary: #e70909;
+  --color-secondary: #0c315f;
+  --gray-300: #ccc;
+  --radius: 0.5rem;
+  --transition: 0.3s ease;
+}
+
+/* Modal (Estilo Unificado y Corregido) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.65);
+  display: none; /* Oculto por defecto */
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  transition: opacity 0.3s ease;
+}
+
+/* Regla para mostrar el modal cuando JS añade style="display: flex" */
+.modal-overlay[style*="display: flex"] {
+  display: flex !important;
+}
+
+.modal-content {
+  background-color: #fff;
+  color: #333;
+  padding: 25px 30px;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+  position: relative;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--color-primary);
+}
