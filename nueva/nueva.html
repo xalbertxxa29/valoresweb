@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-á">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestor de Ofrecimientos</title>
     
@@ -76,6 +76,18 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <input type="text" id="client-name-input" placeholder="Nombre del Cliente o Empresa" required class="form-input">
                                 <input type="text" id="client-ruc-input" placeholder="RUC del Cliente" required class="form-input">
+                                <select id="client-contract-type" required class="form-input">
+                                    <option value="" disabled selected>Tipo de renovación...</option>
+                                    <option value="NUEVO">NUEVO</option>
+                                    <option value="RENOVACION">RENOVACION</option>
+                                </select>
+                                <select id="client-zone" required class="form-input">
+                                    <option value="" disabled selected>Zona...</option>
+                                    <option value="SUR">SUR</option>
+                                    <option value="NORTE">NORTE</option>
+                                    <option value="CENTRO">CENTRO</option>
+                                    <option value="MINAS">MINAS</option>
+                                </select>
                             </div>
                             
                             <div class="border-t border-slate-700 pt-4">
@@ -171,6 +183,18 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input type="text" id="edit-client-name-input" placeholder="Nombre del Cliente o Empresa" required class="form-input">
                     <input type="text" id="edit-client-ruc-input" placeholder="RUC del Cliente" required class="form-input">
+                    <select id="edit-client-contract-type" required class="form-input">
+                        <option value="" disabled>Tipo de renovación...</option>
+                        <option value="NUEVO">NUEVO</option>
+                        <option value="RENOVACION">RENOVACION</option>
+                    </select>
+                    <select id="edit-client-zone" required class="form-input">
+                        <option value="" disabled>Zona...</option>
+                        <option value="SUR">SUR</option>
+                        <option value="NORTE">NORTE</option>
+                        <option value="CENTRO">CENTRO</option>
+                        <option value="MINAS">MINAS</option>
+                    </select>
                 </div>
                 
                 <div class="border-t border-slate-700 pt-4">
