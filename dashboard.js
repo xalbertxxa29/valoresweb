@@ -195,10 +195,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     remainingMonthsText = remainingMonths < 0 ? 0 : remainingMonths;
                     if (remainingMonths <= 6) textColorClass = 'text-danger';
                 }
-
+                //implementationDateDisplay
                 const implementationDateDisplay = client.implementationDate 
                     ? dayjs(client.implementationDate).format('DD/MM/YYYY')
-                    : 'Pendiente';
+                    : 'Pendiente'; 
 
                 tr.innerHTML = `
                     <td>${creationDate}</td>
@@ -559,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return wrapper;
     }
 
-    // --- EVENT LISTENERS ---
+    // --- EVENTO DE LISTENERS ---
     modalCloseBtn.addEventListener('click', () => closeModal(modalOverlay));
     modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(modalOverlay); });
     servicesEditorCloseBtn.addEventListener('click', () => closeModal(servicesEditorModal));
