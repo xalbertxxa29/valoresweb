@@ -11,7 +11,7 @@
   --transition: 0.3s ease;
 }
 
-/* Modal (Estilo Unificado y Corregido) */
+/* --- ESTILOS DE MODAL UNIFICADOS Y MEJORADOS --- */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -19,16 +19,20 @@
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.65);
-  display: none; /* Oculto por defecto */
+  display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
-  transition: opacity 0.3s ease;
+  /* Oculto por defecto con transición */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-/* Regla para mostrar el modal cuando JS añade style="display: flex" */
-.modal-overlay[style*="display: flex"] {
-  display: flex !important;
+/* Clase que activa la visibilidad */
+.modal-overlay.visible {
+  opacity: 1;
+  visibility: visible;
 }
 
 .modal-content {
@@ -41,6 +45,13 @@
   max-width: 450px;
   text-align: center;
   position: relative;
+  /* Transición para el efecto de escala */
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+}
+
+.modal-overlay.visible .modal-content {
+    transform: scale(1);
 }
 
 .modal-content h3 {

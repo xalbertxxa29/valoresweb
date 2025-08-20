@@ -5,7 +5,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const loadingOverlay = document.getElementById("loadingOverlay");
   const usernameInput = document.getElementById("username");
   const passwordInput = document.getElementById("password");
-  const errorMessageDiv = document.getElementById("error-message"); // MEJORA: Elemento para mostrar errores
+  const errorMessageDiv = document.getElementById("error-message");
+  const errorModal = document.getElementById("error-modal"); // Asumiendo que el modal tiene este ID
+  const errorCloseBtn = document.getElementById("error-close-btn"); // Asumiendo que el botón de cierre tiene este ID
 
   if (!loginForm) return;
 
@@ -14,9 +16,23 @@ document.addEventListener("DOMContentLoaded", () => {
     firebase.initializeApp(firebaseConfig);
   } else {
     console.error("Firebase o su configuración no están disponibles.");
-    errorMessageDiv.textContent = "Error crítico de configuración. Contacte al administrador.";
-    errorMessageDiv.style.display = 'block';
+    showError("Error crítico de configuración. Contacte al administrador.");
     return;
+  }
+  const auth = firebase.auth();
+
+  // --- FUNCIONES DEL MODAL (MÉTODO UNIFICADO) ---
+  function showError(message) {
+      if (errorMessageDiv && errorModal) {
+          errorMessageDiv.textContent = message;
+          errorModal.classList.add('visible'); // Muestra el modal añadiendo la clase
+      }
+  }
+
+  function closeModal() {
+      if (errorModal) {
+          errorModal.classList.remove('visible'); // Oculta el modal quitando la clase
+      }
   }
 
   // --- LÓGICA DEL FORMULARIO DE LOGIN ---
@@ -25,12 +41,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = usernameInput.value.trim();
     const password = passwordInput.value.trim();
     
-    // Ocultar mensaje de error anterior
-    errorMessageDiv.style.display = 'none';
+    closeModal(); // Ocultar mensaje de error anterior
 
     if (!email || !password) {
-      errorMessageDiv.textContent = "Por favor, completa todos los campos.";
-      errorMessageDiv.style.display = 'block';
+      showError("Por favor, completa todos los campos.");
       return;
     }
 
@@ -38,35 +52,48 @@ document.addEventListener("DOMContentLoaded", () => {
     loadingOverlay.hidden = false;
 
     try {
-      await firebase.auth().signInWithEmailAndPassword(email, password);
+      await auth.signInWithEmailAndPassword(email, password);
       window.location.href = "dashboard.html";
     } catch (error) {
-      // MEJORA: Manejo de errores integrado en la UI, sin usar alert()
       let friendlyMessage = "Error de inicio de sesión. Inténtalo de nuevo.";
-      // Firebase devuelve códigos de error que podemos traducir a mensajes amigables
       switch (error.code) {
         case 'auth/user-not-found':
         case 'auth/wrong-password':
+        case 'auth/invalid-credential': // Código más reciente de Firebase
           friendlyMessage = "Correo electrónico o contraseña incorrectos.";
           break;
         case 'auth/invalid-email':
           friendlyMessage = "El formato del correo electrónico no es válido.";
           break;
       }
-      errorMessageDiv.textContent = friendlyMessage;
-      errorMessageDiv.style.display = 'block';
+      showError(friendlyMessage);
     } finally {
       loginBtn.disabled = false;
       loadingOverlay.hidden = true;
     }
   });
 
-  // --- LÓGICA PARA MOSTRAR/OCULTAR CONTRASEÑA ---
+  // --- EVENT LISTENERS ADICIONALES ---
+  // Para cerrar el modal
+  if (errorCloseBtn) {
+    errorCloseBtn.addEventListener('click', closeModal);
+  }
+  if (errorModal) {
+    errorModal.addEventListener('click', (e) => {
+        if (e.target === errorModal) {
+            closeModal();
+        }
+    });
+  }
+
+  // Para mostrar/ocultar contraseña
   const togglePassword = document.getElementById("togglePassword");
-  togglePassword.addEventListener("click", function() {
-    const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
-    passwordInput.setAttribute("type", type);
-    // Cambiar el ícono (opcional, pero mejora la UX)
-    this.querySelector('svg').style.stroke = type === "password" ? "currentColor" : "var(--color-primary)";
-  });
+  if (togglePassword) {
+    togglePassword.addEventListener("click", function() {
+      const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
+      passwordInput.setAttribute("type", type);
+      // Cambiar el ícono (opcional, pero mejora la UX)
+      this.querySelector('svg').style.stroke = type === "password" ? "currentColor" : "var(--color-primary)";
+    });
+  }
 });
