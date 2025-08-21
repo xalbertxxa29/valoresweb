@@ -53,8 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- AUTENTICACIÓN ---
     auth.onAuthStateChanged(user => {
-        if (user) {
-            document.getElementById('user-email').textContent = user.email;
+    if (user) {
+            const userName = sessionStorage.getItem('userName');
+            if (userName) {
+                document.getElementById('user-fullname').textContent = userName;
+            } else {
+                // Si no se encuentra el nombre, muestra el email como alternativa
+                document.getElementById('user-fullname').textContent = user.email;
+            }
             showSection('inicio');
         } else {
             window.location.replace('index.html');
@@ -258,11 +264,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const userEmail = client.creadoPor || 'Desconocido';
             userRanking[userEmail] = (userRanking[userEmail] || 0) + 1;
 
+            // ESTE ES EL CÓDIGO CORREGIDO
             if (client.offerings && Array.isArray(client.offerings)) {
                 client.offerings.forEach(offer => {
                     allServiceNames.add(offer.name);
                     const statusKey = client.clientStatus === CLIENT_STATUS.PENDING ? 'pending' : 'won';
                     serviceCounts[statusKey][offer.name] = (serviceCounts[statusKey][offer.name] || 0) + 1;
+
+                    // --- LÍNEAS AÑADIDAS PARA CORREGIR EL CONTEO ---
+                    if (offer.category === VIGILANCIA_CATEGORY) {
+                        vaCount++;
+                    } else if (offer.category === TECNOLOGIA_CATEGORY) {
+                        vatCount++;
+                    }
+                    // --- FIN DE LAS LÍNEAS AÑADIDAS ---
                 });
             }
         });
