@@ -354,3 +354,45 @@ table td.action-icons i {
   justify-content: flex-start;
   gap: 1.25rem;
 }
+ /* --- Estilos para la tabla de servicios en el modal --- */
+.table-responsive-modal {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+.modal-services-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.modal-services-table th,
+.modal-services-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.modal-services-table thead th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.modal-services-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.modal-services-table td:nth-child(3), /* Cant. */
+.modal-services-table td:nth-child(4) { /* Meses */
+  text-align: center;
+}
+
+.modal-services-table td:nth-child(5), /* Costo */
+.modal-services-table td:nth-child(6) { /* Total */
+  text-align: right;
+  font-weight: 500;
+}

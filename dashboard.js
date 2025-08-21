@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sectionId === 'pendientes') loadTableData(CLIENT_STATUS.PENDING, 'initial');
         if (sectionId === 'ganados') loadTableData(CLIENT_STATUS.WON, 'initial');
     }
-    
+
     // --- LÓGICA DE CARGA DE DATOS ---
     async function loadDashboardData() {
         loadingOverlay.style.display = 'flex';
@@ -186,6 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <i class="fas fa-eye action-icon view-btn" data-path="${docPath}" title="Ver Detalles"></i>
                             <i class="fas fa-pencil-alt action-icon edit-details-btn" data-path="${docPath}" title="Editar Detalles"></i>
                             <i class="fas fa-cogs action-icon edit-services-btn" data-path="${docPath}" title="Editar Servicios"></i>
+                            <i class="fas fa-trash-alt action-icon delete-btn" data-path="${docPath}" title="Eliminar Registro"></i>
                         </div>
                     </td>
                 `;
@@ -238,7 +239,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (target.classList.contains('view-btn')) mode = 'view';
                 if (target.classList.contains('edit-details-btn')) mode = 'edit';
                 if (target.classList.contains('edit-services-btn')) mode = 'edit-services';
-                handleClientAction(docPath, mode);
+                
+                // --- AÑADIR ESTA LÓGICA ---
+                if (target.classList.contains('delete-btn')) {
+                    // Pedimos confirmación antes de borrar
+                    if (confirm('¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.')) {
+                        handleDelete(docPath);
+                    }
+                } else {
+                    handleClientAction(docPath, mode);
+                }
+                // --- FIN DE LA LÓGICA AÑADIDA ---
             });
         });
     }
@@ -252,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         prevBtn.disabled = currentPageIndex < 2;
         nextBtn.disabled = fetchedCount < PAGE_SIZE;
     }
-
+    //funcion  de actualización de indicadores y gráfico para cada tipo de valor ---- 
     function updateIndicatorsAndChart(clients) {
         const userRanking = {};
         let vaCount = 0;
@@ -373,14 +384,55 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return `<div class="modal-field"><label>${field.label}</label>${inputHTML}</div>`;
         }).join('');
-        fieldsHTML += `
-            <div class="modal-field-full">
-                <label>Servicios Contratados</label>
-                <ul class="modal-services-list">${servicesText || '<li>No hay servicios registrados.</li>'}</ul>
-            </div>
-            <p class="modal-note">Para editar la lista de servicios, use el botón de Acciones (<i class="fas fa-cogs"></i>).</p>
-        `;
-        modalBody.innerHTML = fieldsHTML;
+        // CÓDIGO NUEVO Y MEJORADO
+            let servicesTableHTML = `
+                <div class="modal-field-full">
+                    <label>Servicios Contratados</label>
+                    <div class="table-responsive-modal">
+                        <table class="modal-services-table">
+                            <thead>
+                                <tr>
+                                    <th>Valor Agregado</th>
+                                    <th>Tipo</th>
+                                    <th>Cant.</th>
+                                    <th>Meses</th>
+                                    <th>Costo Prov.</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+            if (client.offerings && client.offerings.length > 0) {
+                client.offerings.forEach(offer => {
+                    const tipo = offer.category.includes('Vigilancia') ? 'Vigilancia' : 'Tecnología';
+                    const cost = offer.cost || 0;
+                    const total = offer.total || 0;
+
+                    servicesTableHTML += `
+                        <tr>
+                            <td>${offer.name}</td>
+                            <td>${tipo}</td>
+                            <td>${offer.quantity || 1}</td>
+                            <td>${offer.frequency || 'N/A'}</td>
+                            <td>S/ ${cost.toFixed(2)}</td>
+                            <td>S/ ${total.toFixed(2)}</td>
+                        </tr>`;
+                });
+            } else {
+                servicesTableHTML += `<tr><td colspan="6">No hay servicios registrados.</td></tr>`;
+            }
+
+            servicesTableHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <p class="modal-note">Para editar la lista de servicios, use el botón de Acciones (<i class="fas fa-cogs"></i>).</p>
+            `;
+
+            // Añadimos la tabla recién creada al resto de los campos
+            modalBody.innerHTML = fieldsHTML + servicesTableHTML;
+           
     }
     
     function populateModalFooter(docPath, mode) {
@@ -601,4 +653,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeSection === 'ganados') loadTableData(CLIENT_STATUS.WON, 'initial');
         }
     });
+
+    async function handleDelete(docPath) {
+        loadingOverlay.style.display = 'flex'; // Muestra el spinner de carga
+        try {
+            // Elimina el documento de Firestore
+            await db.doc(docPath).delete();
+
+            alert("Registro eliminado con éxito.");
+
+            // Recarga los datos del dashboard y la tabla actual para reflejar el cambio
+            loadDashboardData();
+            const activeSection = document.querySelector('.menu-option.active').dataset.section;
+            if (activeSection === 'pendientes') loadTableData(CLIENT_STATUS.PENDING, 'initial');
+            if (activeSection === 'ganados') loadTableData(CLIENT_STATUS.WON, 'initial');
+
+        } catch (error) {
+            console.error("Error al eliminar el registro:", error);
+            alert("No se pudo eliminar el registro. Inténtalo de nuevo.");
+        } finally {
+            loadingOverlay.style.display = 'none'; // Oculta el spinner de carga
+        }
+    }
 });
