@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gestor-ofrecimientos-v7'; // Nueva versión para forzar la actualización
+const CACHE_NAME = 'gestor-ofrecimientos-v8'; // Nueva versión para forzar la actualización
 const URLS_TO_CACHE = [
   '/',
   'index.html',
@@ -7,7 +7,9 @@ const URLS_TO_CACHE = [
   'firebase-config.js',
   'manifest.json',
   'icon-192x192.jpeg' // Nombre del archivo corregido
-];
+,
+  'nueva.html',
+  'nueva.css'];
 
 // Instalar el Service Worker y guardar los archivos base en caché.
 self.addEventListener('install', event => {

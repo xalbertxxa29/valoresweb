@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Operativo</title>
+  
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+</head>
+<body>
+  <img src="logo.png" alt="Logo de la Empresa" id="fixed-logo">
+  <button id="toggle-sidebar" aria-label="Abrir menú">☰</button>
+
+  <aside class="sidebar">
+    <div class="welcome-message">
+      <h2 id="welcome-title">Bienvenido</h2>
+      <p id="user-fullname">Cargando...</p>
+    </div>
+    <hr class="sidebar-divider" />
+    <nav>
+      <ul>
+        <li><button class="menu-option active" data-section="inicio"><i class="fas fa-home"></i> <span>Inicio</span></button></li>
+        <li><button class="menu-option" data-section="ganados"><i class="fas fa-trophy"></i> <span>Clientes Ganados</span></button></li>
+        <li><button class="menu-option" data-section="ejecucion"><i class="fas fa-cogs"></i> <span>En Proceso de Ejecución</span></button></li>
+      </ul>
+    </nav>
+    <button id="logout-btn"><i class="fas fa-sign-out-alt"></i><span>Cerrar sesión</span></button>
+  </aside>
+
+  <main class="content">
+    <div id="dashboardLoadingOverlay" style="position: absolute; inset: 0; background: rgba(244, 247, 246, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9998; backdrop-filter: blur(2px);">
+        <div class="dashboard-spinner"></div>
+    </div>
+    
+    <section id="inicio-section" class="dashboard-section">
+      <h1>Resumen General</h1>
+      <p class="subtitle">Métricas de gestión para los clientes de tu zona.</p>
+      
+      <div class="stats-cards-grid">
+        <div id="won-card" class="stat-card clickable-card" role="button" tabindex="0">
+          <div class="icon-container" style="background-color: rgba(102, 187, 106, 0.1); color: #66bb6a;"><i class="fas fa-trophy"></i></div>
+          <div class="info"><h3>Clientes Ganados</h3><p class="count" id="won-count">0</p></div>
+        </div>
+
+        <div id="in-process-card" class="stat-card clickable-card" role="button" tabindex="0">
+          <div class="icon-container" style="background-color: rgba(66, 165, 245, 0.1); color: #42a5f5;"><i class="fas fa-tasks"></i></div>
+          <div class="info"><h3>En Proceso de Ejecución</h3><p class="count" id="in-process-count">0</p></div>
+        </div>
+
+        <div id="expiring-card" class="stat-card clickable-card" role="button" tabindex="0">
+          <div class="icon-container" style="background-color: rgba(239, 83, 80, 0.1); color: #ef5350;"><i class="fas fa-file-contract"></i></div>
+          <div class="info">
+            <h3>Contratos por Vencer</h3>
+            <p class="count" id="expiring-count">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-grid">
+        <div class="left-column">
+          <div class="chart-container-full">
+            <h2>Distribución de Servicios por Estado</h2>
+            <canvas id="services-chart"></canvas>
+          </div>
+        </div>
+        <div class="right-column">
+          <div class="indicator-card">
+            <h3><i class="fas fa-medal"></i> Ranking de Registros</h3>
+            <ul id="user-ranking-list"></ul>
+          </div>
+          <div class="indicator-card">
+            <h3><i class="fas fa-tags"></i> Registros por Tipo</h3>
+            <div class="service-type-count">
+              <span>Valor Agregado</span>
+              <strong id="va-count">0</strong>
+            </div>
+            <div class="service-type-count">
+              <span>VA con Tecnología</span>
+              <strong id="vat-count">0</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ganados-section" class="dashboard-section">
+      <h1>Clientes Ganados</h1>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Fecha de Creación</th>
+              <th scope="col">Fecha de Implementación</th>
+              <th scope="col">Nombre del Cliente</th>
+              <th scope="col">RUC</th>
+              <th scope="col">Servicios Contratados</th>
+              <th scope="col">Registrado Por</th>
+              <th scope="col">Meses Faltantes</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="won-table-body"></tbody>
+        </table>
+      </div>
+      <div class="pagination-controls" id="won-pagination">
+        <button id="won-prev" disabled>Anterior</button>
+        <button id="won-next">Siguiente</button>
+      </div>
+    </section>
+
+    <section id="ejecucion-section" class="dashboard-section">
+      <h1>Clientes Ganados en Proceso de Ejecución</h1>
+      <div class="table-responsive">
+          <table>
+              <thead>
+                  <tr>
+                      <th scope="col">Fecha de Creación</th>
+                      <th scope="col">Nombre del Cliente</th>
+                      <th scope="col">RUC</th>
+                      <th scope="col">Servicios</th>
+                      <th scope="col">Registrado Por</th>
+                      <th scope="col">Estado General</th>
+                      <th scope="col">Acciones</th>
+                  </tr>
+              </thead>
+              <tbody id="exec-table-body"><tr><td colspan="7">Cargando...</td></tr></tbody>
+          </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="client-modal-overlay" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 id="modal-title"></h2>
+            <button id="modal-close-btn" class="modal-close-button">&times;</button>
+        </div>
+        <div id="modal-body" class="modal-body"></div>
+        <div id="modal-footer" class="modal-footer"></div>
+    </div>
+  </div>
+  
+  <div id="execution-modal-overlay" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 id="execution-modal-title">Ejecución de servicios</h2>
+        <button id="execution-modal-close" class="modal-close-button">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr><th>Servicio</th><th>Estado</th><th>Acción</th></tr>
+            </thead>
+            <tbody id="execution-items-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="execution-modal-save" class="modal-button btn-modal-primary">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="notification-modal-overlay" class="modal-overlay">
+    <div class="modal-container" style="max-width: 400px; text-align: center;">
+        <div id="notification-modal-body" class="modal-body" style="display: block; padding: 2rem 1.5rem;">
+            <div id="notification-icon" style="font-size: 3rem; margin-bottom: 1rem;"></div>
+            <p id="notification-message" style="font-size: 1.1rem; margin: 0;"></p>
+        </div>
+        <div class="modal-footer">
+            <button id="notification-close-btn" class="modal-button btn-modal-primary">Aceptar</button>
+        </div>
+    </div>
+  </div>
+    
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
+  <script src="operativo.js" defer></script>
+</body>
+</html>

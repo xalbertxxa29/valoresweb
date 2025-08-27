@@ -73,7 +73,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (userDoc.exists) {
         const userData = userDoc.data();
-        const userRole = userData.TIPO;
+        
+        // Se añade .trim() para eliminar espacios y una comprobación de seguridad.
+        const userRole = userData.TIPO ? userData.TIPO.trim() : ''; 
+        
         const fullName = userData.NOMBRE;
 
         // 3. Verificar el rol y redirigir a la página correspondiente
@@ -81,10 +84,24 @@ document.addEventListener("DOMContentLoaded", () => {
           sessionStorage.setItem('userName', fullName);
           await writeAudit('login_success', { email });
           window.location.href = "dashboard.html";
-        } else if (userRole === 'COMERCIAL') { // <-- ESTE ES EL CAMBIO IMPORTANTE
+        } else if (userRole === 'COMERCIAL') {
           sessionStorage.setItem('userName', fullName);
           await writeAudit('login_success_comercial', { email });
           window.location.href = "comercial.html";
+        } else if (userRole === 'OPERACIONES') {
+          const userZone = userData.ZONA; // Obtiene la zona del usuario
+          if (!userZone) {
+            // Si el usuario de operaciones no tiene zona, no puede iniciar sesión
+            await firebase.auth().signOut();
+            errorMessageDiv.textContent = "Acceso denegado. Su usuario no tiene una zona asignada.";
+            errorMessageDiv.style.display = 'block';
+            return; // Detiene la ejecución
+          }
+          sessionStorage.setItem('userName', fullName);
+  
+          sessionStorage.setItem('userZone', userZone); // Guarda la zona para usarla en la siguiente página
+          await writeAudit('login_success_operaciones', { email, zone: userZone });
+          window.location.href = "operativo.html";
         } else {
           // Si el rol no es ninguno de los permitidos, se niega el acceso
           await writeAudit('login_denied_role', { email, role: userRole });

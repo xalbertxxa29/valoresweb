@@ -37,6 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
         { name: 'Detector de metales', category: VIGILANCIA_CATEGORY },
         { name: 'Linternas', category: VIGILANCIA_CATEGORY },
         { name: 'Radios', category: VIGILANCIA_CATEGORY },
+        { name: 'Charlas de seguridad dirigida a EL CLIENTE (presencial)', category: VIGILANCIA_CATEGORY },
+        { name: 'Charlas de seguridad dirigida a EL CLIENTE (virtual)', category: VIGILANCIA_CATEGORY },
         { name: 'Capacitación en hostigamiento sexual y manejo de crisis', category: VIGILANCIA_CATEGORY },
         { name: 'Capacitación de STT', category: VIGILANCIA_CATEGORY },
         { name: 'Capacitación de Sistema detección contra incendio', category: VIGILANCIA_CATEGORY },
@@ -56,7 +58,9 @@ document.addEventListener("DOMContentLoaded", () => {
         { name: 'Integración de plataformas GPS', category: TECNOLOGIA_CATEGORY },
         { name: 'Pulsadores de pánico', category: TECNOLOGIA_CATEGORY },
         { name: 'Configuración de analítica', category: TECNOLOGIA_CATEGORY },
-        { name: 'Ciberseguridad', category: TECNOLOGIA_CATEGORY }
+    
+        { name: 'Ciberseguridad', category: TECNOLOGIA_CATEGORY },
+        { name: 'Propuesta de eficiencia con Tecnología', category: TECNOLOGIA_CATEGORY }
     ];
     
     // =================================================================================

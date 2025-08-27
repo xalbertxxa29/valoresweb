@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
         wrapper.className = 'offering-row';
         const optionsForCategory = availableOfferings.filter(o => o.category === category);
         const selectOptions = optionsForCategory.map(o => `<option value="${o.name}" ${o.name === offeringData.name ? 'selected' : ''}>${o.name}</option>`).join('');
-        wrapper.innerHTML = `<div class="offering-row-header"> <select class="offering-name"><option value="">Seleccionar...</option>${selectOptions}</select> <button type="button" class="remove-offering-row-btn">&times;</button> </div> <div class="offering-row-body"> <input type="number" placeholder="Cant." class="offering-quantity" value="${offeringData.quantity || 1}" min="1"> <select class="offering-provision-mode"> <option value="Cobro mensual" ${offeringData.provisionMode === 'Cobro mensual' ? 'selected' : ''}>Cobro mensual</option> <option value="Por todo el contrato" ${offeringData.provisionMode === 'Por todo el contrato' ? 'selected' : ''}>Por todo el contrato</option> </select> <select class="offering-frequency"> <option value="6" ${offeringData.frequency == 6 ? 'selected' : ''}>6m</option> <option value="12" ${offeringData.frequency == 12 ? 'selected' : ''}>12m</option> <option value="18" ${offeringData.frequency == 18 ? 'selected' : ''}>18m</option> <option value="24" ${offeringData.frequency == 24 ? 'selected' : ''}>24m</option> <option value="36" ${offeringData.frequency == 36 ? 'selected' : ''}>36m</option> </select> <input type="number" placeholder="Costo S/." class="offering-cost" value="${offeringData.cost || ''}" min="0" step="0.01"> <input type="text" placeholder="Total" class="offering-total" value="S/ ${offeringData.total?.toFixed(2) || '0.00'}" readonly> <input type="hidden" class="offering-category" value="${category}"> </div>`;
+        wrapper.innerHTML = `<div class="offering-row-header"> <select class="offering-name"><option value="">Seleccionar...</option>${selectOptions}</select> <button type="button" class="remove-offering-row-btn">&times;</button> </div> <div class="offering-row-body> <input type="number" placeholder="Cant." class="offering-quantity" value="${offeringData.quantity || 1}" min="1"> <select class="offering-provision-mode"> <option value="Cobro mensual" ${offeringData.provisionMode === 'Cobro mensual' ? 'selected' : ''}>Cobro mensual</option> <option value="Por todo el contrato" ${offeringData.provisionMode === 'Por todo el contrato' ? 'selected' : ''}>Por todo el contrato</option> </select> <select class="offering-frequency"> <option value="6" ${offeringData.frequency == 6 ? 'selected' : ''}>6m</option> <option value="12" ${offeringData.frequency == 12 ? 'selected' : ''}>12m</option> <option value="18" ${offeringData.frequency == 18 ? 'selected' : ''}>18m</option> <option value="24" ${offeringData.frequency == 24 ? 'selected' : ''}>24m</option> <option value="36" ${offeringData.frequency == 36 ? 'selected' : ''}>36m</option> </select> <input type="number" placeholder="Costo S/." class="offering-cost" value="${offeringData.cost || ''}" min="0" step="0.01"> <input type="text" placeholder="Total" class="offering-total" value="S/ ${offeringData.total?.toFixed(2) || '0.00'}" readonly> <input type="hidden" class="offering-category" value="${category}"> </div>`;
         const calculateTotal = () => {
             const quantity = parseFloat(wrapper.querySelector('.offering-quantity').value) || 1;
             const cost = parseFloat(wrapper.querySelector('.offering-cost').value) || 0;
@@ -548,8 +548,9 @@ document.addEventListener('DOMContentLoaded', () => {
         closeModal(document.getElementById('date-picker-modal'));
         try {
             const ref = db.doc(docPath); const snap = await ref.get(); const data = snap.data() || {};
+            const nowTs = firebase.firestore.Timestamp.now(); // ⬅️ CAMBIO
             const executionOfferings = (Array.isArray(data.offerings) ? data.offerings : []).map(o => ({
-                name: o.name, category: o.category, status: 'pending', statusChangedAt: firebase.firestore.FieldValue.serverTimestamp()
+                name: o.name, category: o.category, status: 'pending', statusChangedAt: nowTs // ⬅️ CAMBIO
             }));
             await ref.update({
                 clientStatus: 'Ganado', implementationDate: implementationDate, 'stateDates.wonAt': firebase.firestore.FieldValue.serverTimestamp(),
@@ -632,7 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const offering = statusMap.get(name) || { name, status: 'pending' };
                     if (offering.status !== newStatus) {
                         offering.status = newStatus;
-                        offering.statusChangedAt = firebase.firestore.FieldValue.serverTimestamp();
+                        offering.statusChangedAt = firebase.firestore.Timestamp.now(); // ⬅️ CAMBIO
                         if (newStatus === 'in_process') becameInProcess = true;
                         statusMap.set(name, offering);
                     }
