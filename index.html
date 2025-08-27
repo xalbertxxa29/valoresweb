@@ -46,7 +46,8 @@
     </div>
   </div>
 
-  <div id="loadingOverlay" hidden>
+  <div id="loadingOverlay" hidden role="status" aria-live="polite" aria-busy="true">
+    <span class="visually-hidden" id="live-status"></span>
     <div class="spinner"></div>
   </div>
   

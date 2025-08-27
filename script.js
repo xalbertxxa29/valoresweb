@@ -1,4 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // Prefill Remember Me
+  try {
+    const savedEmail = localStorage.getItem('rememberEmail');
+    const rememberCb = document.getElementById("remember");
+    if (savedEmail && usernameInput) {
+      usernameInput.value = savedEmail;
+      if (rememberCb) rememberCb.checked = true;
+    }
+  } catch(_) {}
+
+  // A11y live region for spinner
+  const live = document.getElementById("live-status");
+  function announce(msg){
+    if (live){ live.textContent = ""; setTimeout(()=> live.textContent = msg, 10); }
+  }
+
   // --- ELEMENTOS DEL DOM ---
   const loginForm = document.getElementById("login-form");
   const loginBtn = document.getElementById("login-btn");
@@ -21,6 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const auth = firebase.auth();
   const db = firebase.firestore();
 
+  async function writeAudit(event, details){ try{ await db.collection('logs').add({ event, details, at: firebase.firestore.FieldValue.serverTimestamp() }); }catch(e){ console.warn('No se pudo registrar auditoría', e);} }
+
   // --- LÓGICA DEL FORMULARIO DE LOGIN ---
   loginForm.addEventListener("submit", async e => {
     e.preventDefault();
@@ -30,21 +48,24 @@ document.addEventListener("DOMContentLoaded", () => {
     errorMessageDiv.style.display = 'none';
 
     if (!email || !password) {
+      if (!email) { usernameInput.setAttribute('aria-invalid','true'); usernameInput.focus(); }
+      if (!password && email){ passwordInput.setAttribute('aria-invalid','true'); passwordInput.focus(); }
       errorMessageDiv.textContent = "Por favor, completa todos los campos.";
       errorMessageDiv.style.display = 'block';
       return;
     }
 
     loginBtn.disabled = true;
-    loadingOverlay.hidden = false;
+    loadingOverlay.hidden = false; try{announce('Procesando inicio de sesión');}catch(_){}
 
     try {
       // 1. Autenticación inicial con Firebase Auth
       await firebase.auth().signInWithEmailAndPassword(email, password);
+      try{ const rememberCb = document.getElementById('remember'); if(rememberCb && rememberCb.checked){ localStorage.setItem('rememberEmail', email); } else { localStorage.removeItem('rememberEmail'); } }catch(_){}
       
-      // --- INICIO DE LA NUEVA VERIFICACIÓN DE ROL ---
+      // --- VERIFICACIÓN DE ROL ACTUALIZADA ---
       
-      // 2. Extraer nombre de usuario y buscar en la colección 'usuarios' (case-insensitive)
+      // 2. Extraer nombre de usuario y buscar en la colección 'usuarios'
       const username = email.split('@')[0];
       const userDocId = username.toUpperCase();
       const userDocRef = db.collection("usuarios").doc(userDocId);
@@ -55,24 +76,30 @@ document.addEventListener("DOMContentLoaded", () => {
         const userRole = userData.TIPO;
         const fullName = userData.NOMBRE;
 
-        // 3. Verificar si el rol es 'SUPERVISOR GENERAL'
+        // 3. Verificar el rol y redirigir a la página correspondiente
         if (userRole === 'SUPERVISOR GENERAL') {
-          // Si es correcto, guardamos el nombre para usarlo en el dashboard y redirigimos
           sessionStorage.setItem('userName', fullName);
+          await writeAudit('login_success', { email });
           window.location.href = "dashboard.html";
+        } else if (userRole === 'COMERCIAL') { // <-- ESTE ES EL CAMBIO IMPORTANTE
+          sessionStorage.setItem('userName', fullName);
+          await writeAudit('login_success_comercial', { email });
+          window.location.href = "comercial.html";
         } else {
-          // Si el rol no es el correcto, cerramos sesión y mostramos el mensaje de mantenimiento
+          // Si el rol no es ninguno de los permitidos, se niega el acceso
+          await writeAudit('login_denied_role', { email, role: userRole });
           await firebase.auth().signOut();
-          errorMessageDiv.textContent = "La plataforma está en mantenimiento para su acceso.";
+          errorMessageDiv.textContent = "No tienes permisos para acceder a esta plataforma.";
           errorMessageDiv.style.display = 'block';
         }
       } else {
-        // Si el usuario no existe en la colección 'usuarios', no tiene rol asignado
+        // Si el usuario no existe en la colección 'usuarios'
+        await writeAudit('login_user_not_found_in_usuarios', { email });
         await firebase.auth().signOut();
         errorMessageDiv.textContent = "No tienes permisos para acceder a esta plataforma.";
         errorMessageDiv.style.display = 'block';
       }
-      // --- FIN DE LA NUEVA VERIFICACIÓN DE ROL ---
+      // --- FIN DE LA VERIFICACIÓN DE ROL ---
 
     } catch (error) {
       let friendlyMessage = "Error de inicio de sesión. Inténtalo de nuevo.";
@@ -90,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
       errorMessageDiv.style.display = 'block';
     } finally {
       loginBtn.disabled = false;
-      loadingOverlay.hidden = true;
+      loadingOverlay.hidden = true; try{announce('Listo');}catch(_){}
     }
   });
 

@@ -131,22 +131,24 @@ nav .menu-option .fas { width: 20px; text-align: center; font-size: 1.1rem; }
   border-radius: var(--border-radius); box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 table { width: 100%; border-collapse: collapse; }
-table th, table td { padding: var(--space-md); text-align: left; border-bottom: 1px solid #e9ecef; }
+table th, table td { 
+  padding: var(--space-md); 
+  text-align: left; 
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: middle; /* <-- AÑADIDO PARA MEJOR ALINEACIÓN VERTICAL */
+}
 table thead th {
   background: var(--bg-content); color: var(--text-secondary);
   text-transform: uppercase; font-size: 0.8rem; font-weight: 700;
-  position: sticky; top: 0;
+  position: sticky; top: 0; z-index: 10;
 }
 table tbody tr:hover { background-color: #f8f9fa; }
-table td ul { list-style: none; padding-left: 0; }
-table td ul li { margin-bottom: 0.25rem; }
 
 @keyframes fadeIn { 
   from { opacity: 0; transform: translateY(10px); } 
   to { opacity: 1; transform: translateY(0); } 
 }
 
-/* --- Estructura de la Grilla Principal --- */
 .main-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -156,7 +158,6 @@ table td ul li { margin-bottom: 0.25rem; }
 .left-column { display: flex; flex-direction: column; }
 .right-column { display: flex; flex-direction: column; gap: var(--space-lg); }
 
-/* --- Estilos para las Tarjetas de Indicadores --- */
 .indicator-card {
   background-color: var(--bg-content);
   border-radius: var(--border-radius);
@@ -192,12 +193,10 @@ table td ul li { margin-bottom: 0.25rem; }
 .service-type-count span { font-size: 1rem; color: var(--text-secondary); }
 .service-type-count strong { font-size: 1.8rem; font-weight: 700; color: var(--accent-color); }
 
-/* --- Adaptabilidad --- */
 @media (max-width: 1200px) { .main-grid { grid-template-columns: 1fr; } }
 #registrar-section.is-visible { height: 95%; }
 .text-danger { color: #e70909; font-weight: bold; }
 
-/* --- Estilos para Feedback de Carga --- */
 .dashboard-spinner {
   width: 50px; height: 50px; border: 6px solid rgba(0, 0, 0, 0.1);
   border-top-color: var(--primary-color); border-radius: 50%;
@@ -205,7 +204,6 @@ table td ul li { margin-bottom: 0.25rem; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* --- Estilos para Controles de Paginación --- */
 .pagination-controls {
   display: flex; justify-content: flex-end; align-items: center;
   padding: 1rem 0; gap: 0.75rem;
@@ -218,31 +216,14 @@ table td ul li { margin-bottom: 0.25rem; }
 .pagination-controls button:hover:not(:disabled) { background-color: #f4f7f6; border-color: #ccc; }
 .pagination-controls button:disabled { cursor: not-allowed; opacity: 0.6; }
 
-/* --- Estilos para Tarjetas Clickeables --- */
 .clickable-card { cursor: pointer; }
 .clickable-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); }
 
-/* --- REGLA CORREGIDA Y REFORZADA PARA GARANTIZAR LA ALINEACIÓN --- */
-table td.action-icons {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 1.25rem !important;
-  padding-left: 1.25rem !important;
-}
-/* Regla adicional para asegurar que los íconos se comporten correctamente */
-table td.action-icons i {
-    display: inline-block !important;
-}
-
 .action-icon { cursor: pointer; font-size: 1.1rem; color: var(--text-secondary); transition: all 0.2s ease; }
 .action-icon.view-btn:hover { color: var(--primary-color); transform: scale(1.2); }
-.action-icon.edit-details-btn:hover { color: #f59e0b; transform: scale(1.2); } /* Amarillo para detalles */
-.action-icon.edit-services-btn:hover { color: var(--accent-color); transform: scale(1.2); } /* Verde para servicios */
+.action-icon.edit-details-btn:hover { color: #f59e0b; transform: scale(1.2); }
+.action-icon.edit-services-btn:hover { color: var(--accent-color); transform: scale(1.2); }
 
-
-/* --- Estilos para el Modal --- */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center;
@@ -276,11 +257,6 @@ table td.action-icons i {
   padding: 0.5rem 0.75rem; border-radius: 8px; word-break: break-word;
 }
 .modal-field-full { grid-column: 1 / -1; }
-.modal-body .modal-services-list {
-  list-style-type: none; padding: 0.5rem 0.75rem; margin: 0;
-  background: #f4f7f6; border-radius: 8px;
-}
-.modal-body .modal-services-list li { padding: 0.25rem 0; }
 .modal-footer {
   padding: 1rem 1.5rem; border-top: 1px solid #e9ecef; display: flex;
   justify-content: flex-end; gap: 0.75rem;
@@ -295,7 +271,6 @@ table td.action-icons i {
 .btn-modal-primary:hover { background-color: #162e54; }
 @media (max-width: 768px) { .modal-body { grid-template-columns: 1fr; } }
 
-/* --- Estilos para Inputs y Editor de Servicios --- */
 .modal-input {
     font-family: 'Poppins', sans-serif; width: 100%; padding: 0.5rem 0.75rem;
     border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;
@@ -347,14 +322,12 @@ table td.action-icons i {
 }
 .offering-row-body input[readonly] { background-color: #e9ecef; color: var(--text-secondary); }
 
-/* Ajusta solo el contenedor interno, no el td */
 .action-icons-wrapper {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 1.25rem;
 }
- /* --- Estilos para la tabla de servicios en el modal --- */
 .table-responsive-modal {
   width: 100%;
   overflow-x: auto;
@@ -385,14 +358,73 @@ table td.action-icons i {
 .modal-services-table tbody tr:last-child td {
   border-bottom: none;
 }
+.modal-services-table td:nth-child(3), .modal-services-table td:nth-child(4) { text-align: center; }
+.modal-services-table td:nth-child(5), .modal-services-table td:nth-child(6) { text-align: right; font-weight: 500; }
 
-.modal-services-table td:nth-child(3), /* Cant. */
-.modal-services-table td:nth-child(4) { /* Meses */
-  text-align: center;
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
 }
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+.btn-action-won {
+  background: linear-gradient(45deg, #28a745, #218838);
+  color: white;
+  border-color: #1e7e34;
+}
+.btn-action-won:hover { background: linear-gradient(45deg, #218838, #1e7e34); }
+.btn-action-manage {
+  background-color: #6c757d;
+  color: white;
+  border-color: #5a6268;
+}
+.btn-action-manage:hover { background-color: #5a6268; }
+.btn-action .fas { font-size: 0.9em; }
 
-.modal-services-table td:nth-child(5), /* Costo */
-.modal-services-table td:nth-child(6) { /* Total */
-  text-align: right;
-  font-weight: 500;
+#execution-modal-overlay .modal-body { display: block; }
+#execution-modal-overlay .table-responsive { max-height: 55vh; overflow-y: auto; }
+
+.client-name-highlight {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 1.05em;
+}
+.code-text {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+.service-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+.service-summary .service-count { font-weight: 500; }
+.service-summary .view-details-link {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--primary-color);
+    text-decoration: none;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background-color: rgba(26, 58, 107, 0.05);
+    transition: all 0.2s ease;
+}
+.service-summary .view-details-link:hover {
+    background-color: rgba(26, 58, 107, 0.1);
+    text-decoration: underline;
 }

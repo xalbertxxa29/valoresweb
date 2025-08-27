@@ -68,13 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
     const modalFooter = document.getElementById('modal-footer');
-    const modalCloseBtn = document.getElementById('modal-close-btn'); // <-- AÑADIDO PARA CORREGIR EL ERROR
+    const modalCloseBtn = document.getElementById('modal-close-btn');
 
-    // Elementos del modal de edición de servicios
     const servicesEditorModal = document.getElementById('services-editor-modal');
-    const servicesEditorCloseBtn = document.getElementById('services-editor-close-btn'); // <-- AÑADIDO PARA CORREGIR EL ERROR
-    const servicesEditorCancelBtn = document.getElementById('services-editor-cancel-btn'); // <-- AÑADIDO PARA CORREGIR EL ERROR
-    const servicesEditorSaveBtn = document.getElementById('services-editor-save-btn'); // <-- AÑADIDO PARA CORREGIR EL ERROR
+    const servicesEditorCloseBtn = document.getElementById('services-editor-close-btn');
+    const servicesEditorCancelBtn = document.getElementById('services-editor-cancel-btn');
+    const servicesEditorSaveBtn = document.getElementById('services-editor-save-btn');
     const editVigilanciaContainer = document.getElementById('edit-vigilancia-offerings-container');
     const editTecnologiaContainer = document.getElementById('edit-tecnologia-offerings-container');
 
@@ -111,7 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadDashboardData() {
         loadingOverlay.style.display = 'flex';
         try {
-            const clientsSnapshot = await db.collectionGroup('clients').get();
+            const user = auth.currentUser;
+            if (!user) { throw new Error("Usuario no autenticado."); }
+
+            const clientsSnapshot = await db.collectionGroup('clients')
+                .where('creadoPor', '==', user.email) // <-- FILTRO AÑADIDO POR ROL COMERCIAL
+                .get();
             const clients = clientsSnapshot.docs.map(doc => doc.data());
             
             document.getElementById('pending-count').textContent = clients.filter(c => c.clientStatus === CLIENT_STATUS.PENDING).length;
@@ -137,8 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const state = paginationState[status];
         
         try {
+            const user = auth.currentUser;
+            if (!user) { throw new Error("Usuario no autenticado."); }
+
             let query = db.collectionGroup('clients')
                 .where('clientStatus', '==', status)
+                .where('creadoPor', '==', user.email) // <-- FILTRO AÑADIDO POR ROL COMERCIAL
                 .orderBy('createdAt', 'desc')
                 .limit(PAGE_SIZE);
 
@@ -166,32 +174,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.pageHistory = [null, state.lastDoc];
             }
             
-            await renderTable(status, docs); // Convertido a async
+            await renderTable(status, docs);
             updatePaginationButtons(status, docs.length);
 
         } catch (error) { console.error(`Error cargando tabla de ${status}:`, error);
         } finally { loadingOverlay.style.display = 'none'; }
     }
     
-    // --- FUNCIÓN RENDERTABLE TOTALMENTE REESTRUCTURADA ---
+    // --- FUNCIÓN RENDERTABLE MODIFICADA PARA ROL COMERCIAL ---
     async function renderTable(status, docs) {
         const tableId = status === CLIENT_STATUS.PENDING ? 'pending-table-body' : 'won-table-body';
         const tbody = document.getElementById(tableId);
         tbody.innerHTML = '';
 
-        const colspan = status === CLIENT_STATUS.WON ? 8 : 6;
+        // Colspan ajustado para la vista de "Ganados" sin acciones
+        const colspan = status === CLIENT_STATUS.WON ? 7 : 6;
         if (docs.length === 0) {
             tbody.innerHTML = `<tr><td colspan="${colspan}">No se encontraron registros.</td></tr>`;
             return;
         }
 
-        // Usamos Promise.all para resolver todos los nombres de usuario en paralelo
         const rowsHtml = await Promise.all(docs.map(async (doc) => {
             const client = doc.data();
             const docPath = doc.ref.path;
             const createdByFullName = await getUserName(client.creadoPor);
 
-            // --- Celdas Comunes ---
             const creationDate = client.createdAt ? dayjs(client.createdAt.toDate()).format('DD/MM/YYYY') : 'N/A';
             const servicesCount = client.offerings ? client.offerings.length : 0;
             const servicesHTML = `
@@ -200,15 +207,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <a class="view-details-link" data-path="${docPath}"><i class="fas fa-list-ul"></i> Ver Detalles</a>
                 </div>`;
             
-            let actionsCellHTML = `
-                <div class="action-icons-wrapper">
-                    <i class="fas fa-pencil-alt action-icon edit-details-btn" data-path="${docPath}" title="Editar Detalles"></i>
-                    <i class="fas fa-cogs action-icon edit-services-btn" data-path="${docPath}" title="Editar Servicios"></i>
-                    <i class="fas fa-trash-alt action-icon delete-btn" data-path="${docPath}" title="Eliminar Registro"></i>
-                </div>`;
-
             // --- Composición de la Fila ---
             if (status === CLIENT_STATUS.PENDING) {
+                // Para "Pendientes", el rol COMERCIAL sí tiene acciones
+                let actionsCellHTML = `
+                    <div class="action-icons-wrapper">
+                        <i class="fas fa-pencil-alt action-icon edit-details-btn" data-path="${docPath}" title="Editar Detalles"></i>
+                        <i class="fas fa-cogs action-icon edit-services-btn" data-path="${docPath}" title="Editar Servicios"></i>
+                        <i class="fas fa-trash-alt action-icon delete-btn" data-path="${docPath}" title="Eliminar Registro"></i>
+                    </div>`;
                 actionsCellHTML += `<button class="btn-action btn-action-won mark-won-btn" data-path="${docPath}"><i class="fas fa-check"></i> GANADO</button>`;
                 return `
                     <tr>
@@ -219,8 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${createdByFullName}</td>
                         <td>${actionsCellHTML}</td>
                     </tr>`;
-            } else { // CLIENT_STATUS.WON
-                actionsCellHTML += `<button class="btn-action btn-action-manage exec-pending-btn" data-path="${docPath}"><i class="fas fa-tasks"></i> Gestionar</button>`;
+            } else { // CLIENT_STATUS.WON - Sin columna de acciones para el rol COMERCIAL
                 const implementationDate = client.implementationDate ? dayjs(client.implementationDate).format('DD/MM/YYYY') : 'Pendiente';
                 let remainingMonthsText = 'N/A', textColorClass = '';
                 const duration = client.offerings?.[0]?.frequency || 0;
@@ -239,19 +245,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${servicesHTML}</td>
                         <td>${createdByFullName}</td>
                         <td class="${textColorClass}">${remainingMonthsText}</td>
-                        <td>${actionsCellHTML}</td>
                     </tr>`;
             }
         }));
 
         tbody.innerHTML = rowsHtml.join('');
 
-        // Re-asignar eventos a los nuevos elementos
+        // Re-asignar eventos a los nuevos elementos (solo se crearán en la tabla de pendientes)
         tbody.querySelectorAll('.action-icon, .view-details-link').forEach(element => {
             element.addEventListener('click', (event) => {
                 const target = event.currentTarget;
                 const docPath = target.dataset.path;
-                let mode = 'view'; // Por defecto es 'view' para el nuevo enlace
+                let mode = 'view';
                 if (target.classList.contains('edit-details-btn')) mode = 'edit';
                 if (target.classList.contains('edit-services-btn')) mode = 'edit-services';
                 
@@ -343,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function populateModalBody(client, mode) {
         const isEditMode = mode === 'edit';
-        const createdByFullName = await getUserName(client.creadoPor); // Resuelve el nombre aquí también
+        const createdByFullName = await getUserName(client.creadoPor);
         const fields = [
             { id: 'clientName', label: 'Nombre del Cliente', value: client.name, type: 'text', editable: true },
             { id: 'clientRuc', label: 'RUC', value: client.ruc, type: 'text', editable: true },
@@ -562,108 +567,26 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Error al marcar como ganado:", error); alert("Ocurrió un error al actualizar el estado.");
         } finally { loadingOverlay.style.display = 'none'; }
     }
-
-    let currentExecPath = null;
-    const executionModalOverlay = document.getElementById('execution-modal-overlay');
-
-    function openExecutionModal(docPath, mode) {
-        currentExecPath = docPath;
-        const body = document.getElementById('execution-items-body');
-        const title = document.getElementById('execution-modal-title');
-        title.textContent = mode === 'executed' ? 'Marcar Servicios como Ejecutados' : 'Marcar Servicios en Proceso';
-        body.innerHTML = '<tr><td colspan="3">Cargando...</td></tr>';
-        openModal(document.getElementById('execution-modal-overlay'));
-        db.doc(docPath).get().then(snap => {
-            const data = snap.data() || {};
-            const items = Array.isArray(data.offerings) ? data.offerings : [];
-            const execOfferings = (data.execution && Array.isArray(data.execution.offerings))
-                                  ? data.execution.offerings
-                                  : items.map(o => ({ name: o.name, status: 'pending' }));
-            const statusMap = new Map(execOfferings.map(x => [x.name, x.status]));
-            body.innerHTML = '';
-            items.forEach(o => {
-                const currentStatus = statusMap.get(o.name) || 'pending';
-                const isExecuted = currentStatus === 'executed';
-                const statusLabels = { pending: 'Pendiente', in_process: 'En Proceso', executed: 'Ejecutado' };
-                let buttonHTML = '';
-                if (isExecuted) {
-                    buttonHTML = `<button class="modal-button btn-modal-secondary btn-xs" disabled>Ejecutado</button>`;
-                } else {
-                    const nextStatus = mode === 'executed' ? 'executed' : 'in_process';
-                    const buttonText = mode === 'executed' ? 'Ejecutado' : 'En Proceso';
-                    buttonHTML = `<button class="modal-button btn-modal-primary btn-xs exec-mark-item" data-next-status="${nextStatus}">${buttonText}</button>`;
-                }
-                const tr = document.createElement('tr');
-                tr.dataset.name = o.name;
-                tr.innerHTML = `<td>${o.name}</td> <td class="current-status">${statusLabels[currentStatus]}</td> <td>${buttonHTML}</td>`;
-                body.appendChild(tr);
-            });
-        });
-    }
-
-    document.getElementById('execution-items-body').addEventListener('click', e => {
-        if (e.target.classList.contains('exec-mark-item')) {
-            const button = e.target;
-            const tr = button.closest('tr');
-            const nextStatus = button.dataset.nextStatus;
-            tr.dataset.newStatus = nextStatus;
-            button.disabled = true;
-            button.textContent = nextStatus === 'executed' ? 'Marcado Ejec.' : 'Marcado en Proc.';
-            tr.querySelector('.current-status').textContent = nextStatus === 'executed' ? 'Ejecutado' : 'En Proceso';
-        }
-    });
-
-    async function saveExecutionModal() {
-        if (!currentExecPath) return;
-        loadingOverlay.style.display = 'flex';
-        const saveBtn = document.getElementById('execution-modal-save');
-        saveBtn.disabled = true;
-        try {
-            const clientRef = db.doc(currentExecPath);
-            const snap = await clientRef.get();
-            const data = snap.data() || {};
-            let currentExecutionOfferings = (data.execution && data.execution.offerings) || [];
-            let statusMap = new Map(currentExecutionOfferings.map(o => [o.name, o]));
-            let hasChanges = false; let becameInProcess = false; let allExecuted = true;
-            document.querySelectorAll('#execution-items-body tr').forEach(tr => {
-                const { name, newStatus } = tr.dataset;
-                if (newStatus) {
-                    hasChanges = true;
-                    const offering = statusMap.get(name) || { name, status: 'pending' };
-                    if (offering.status !== newStatus) {
-                        offering.status = newStatus;
-                        offering.statusChangedAt = firebase.firestore.FieldValue.serverTimestamp();
-                        if (newStatus === 'in_process') becameInProcess = true;
-                        statusMap.set(name, offering);
-                    }
-                }
-            });
-            if (!hasChanges) { alert("No se realizaron cambios."); return; }
-            const updatedOfferings = Array.from(statusMap.values());
-            updatedOfferings.forEach(o => { if (o.status !== 'executed') allExecuted = false; });
-            const overallStatus = allExecuted ? 'executed' : (updatedOfferings.some(o => o.status === 'in_process' || o.status === 'executed') ? 'in_process' : 'pending');
-            const updates = { 'execution.offerings': updatedOfferings, 'execution.overallStatus': overallStatus, 'execution.updatedAt': firebase.firestore.FieldValue.serverTimestamp() };
-            if (becameInProcess && !data.stateDates?.inProcessAt) { updates['stateDates.inProcessAt'] = firebase.firestore.FieldValue.serverTimestamp(); }
-            if (allExecuted && !data.stateDates?.executedAt) { updates['stateDates.executedAt'] = firebase.firestore.FieldValue.serverTimestamp(); }
-            await clientRef.update(updates);
-            alert('Estados de ejecución actualizados con éxito.');
-            closeModal(executionModalOverlay);
-            loadExecList();
-            loadTableData(CLIENT_STATUS.WON, 'initial');
-        } catch (error) { console.error("Error al guardar ejecución:", error); alert("No se pudieron guardar los cambios.");
-        } finally { loadingOverlay.style.display = 'none'; saveBtn.disabled = false; }
-    }
-
+    
+    // --- LÓGICA DE EJECUCIÓN - MODIFICADA PARA ROL COMERCIAL ---
     async function loadExecList() {
         const tbody = document.getElementById('exec-table-body');
-        tbody.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>'; // Colspan ajustado a 6
         try {
+            const user = auth.currentUser;
+            if (!user) { throw new Error("Usuario no autenticado."); }
+
             const snap = await db.collectionGroup('clients')
                 .where('clientStatus', '==', 'Ganado')
                 .where('execution.overallStatus', 'in', ['in_process', 'executed'])
+                .where('creadoPor', '==', user.email) // <-- FILTRO AÑADIDO POR ROL COMERCIAL
                 .orderBy('execution.updatedAt', 'desc')
                 .get();
-            if (snap.empty) { tbody.innerHTML = '<tr><td colspan="7">No hay clientes en proceso de ejecución.</td></tr>'; return; }
+                
+            if (snap.empty) { 
+                tbody.innerHTML = '<tr><td colspan="6">No hay clientes en proceso de ejecución.</td></tr>'; // Colspan ajustado a 6
+                return; 
+            }
             
             const rowsHtml = await Promise.all(snap.docs.map(async (doc) => {
                 const d = doc.data();
@@ -672,28 +595,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 const statusLabels = { in_process: 'En Proceso', executed: 'Ejecutado' };
                 const servicesCount = (d.offerings || []).length;
                 const servicesHTML = `<div class="service-summary"> <span class="service-count">${servicesCount} Servicio${servicesCount !== 1 ? 's' : ''}</span> <a class="view-details-link" data-path="${doc.ref.path}"><i class="fas fa-list-ul"></i> Ver Detalles</a> </div>`;
-                return `<tr> <td><span class="code-text">${d.createdAt ? dayjs(d.createdAt.toDate()).format('DD/MM/YYYY') : 'N/A'}</span></td> <td><span class="client-name-highlight">${d.name || 'N/A'}</span></td> <td><span class="code-text">${d.ruc || 'N/A'}</span></td> <td>${servicesHTML}</td> <td>${createdByFullName}</td> <td>${statusLabels[status] || status}</td> <td> <button class="btn-action btn-action-manage exec-open" data-path="${doc.ref.path}"><i class="fas fa-tasks"></i> Gestionar</button> </td> </tr>`;
+                // Se elimina la última celda de "Acciones"
+                return `<tr> 
+                          <td><span class="code-text">${d.createdAt ? dayjs(d.createdAt.toDate()).format('DD/MM/YYYY') : 'N/A'}</span></td>
+                          <td><span class="client-name-highlight">${d.name || 'N/A'}</span></td>
+                          <td><span class="code-text">${d.ruc || 'N/A'}</span></td>
+                          <td>${servicesHTML}</td>
+                          <td>${createdByFullName}</td>
+                          <td>${statusLabels[status] || status}</td>
+                        </tr>`;
             }));
             tbody.innerHTML = rowsHtml.join('');
-        } catch (error) { console.error("Error cargando lista de ejecución:", error); tbody.innerHTML = '<tr><td colspan="7">Error al cargar los datos.</td></tr>'; }
+        } catch (error) { 
+            console.error("Error cargando lista de ejecución:", error); 
+            tbody.innerHTML = '<tr><td colspan="6">Error al cargar los datos.</td></tr>'; // Colspan ajustado a 6
+        }
     }
 
+    // --- EVENT LISTENERS ESPECÍFICOS ---
     document.addEventListener('click', (e) => {
+        // El único botón de acción en tabla es "Marcar como Ganado" para "Pendientes"
         const wonBtn = e.target.closest('.mark-won-btn');
         if (wonBtn) { e.preventDefault(); openWonDatePickerModal(wonBtn.dataset.path); }
 
-        const execPendingBtn = e.target.closest('.exec-pending-btn');
-        if (execPendingBtn) { e.preventDefault(); openExecutionModal(execPendingBtn.dataset.path, 'in_process'); }
-
-        const execOpenBtn = e.target.closest('.exec-open');
-        if (execOpenBtn) { e.preventDefault(); openExecutionModal(execOpenBtn.dataset.path, 'executed'); }
-        
-        if (e.target.id === 'execution-modal-close' || e.target.closest('#execution-modal-close')) { closeModal(document.getElementById('execution-modal-overlay')); }
-        if (e.target.id === 'execution-modal-save') { saveExecutionModal(); }
         if (e.target.id === 'date-picker-close-btn' || e.target.id === 'date-picker-cancel-btn') { closeModal(document.getElementById('date-picker-modal')); }
         if (e.target.id === 'date-picker-confirm-btn') { handleConfirmWon(); }
         
-        // Cierre de los otros modales
         if (e.target.id === 'services-editor-close-btn' || e.target.id === 'services-editor-cancel-btn' || e.target.closest('#services-editor-close-btn')) {
             closeModal(document.getElementById('services-editor-modal'));
         }
