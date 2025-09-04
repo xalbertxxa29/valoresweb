@@ -36,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
         { name: 'Equipos de computo', category: VIGILANCIA_CATEGORY },
         { name: 'Detector de metales', category: VIGILANCIA_CATEGORY },
         { name: 'Linternas', category: VIGILANCIA_CATEGORY },
+        { name: 'Vara Luminosa', category: VIGILANCIA_CATEGORY },
+        { name: 'Equipo celular', category: VIGILANCIA_CATEGORY },
         { name: 'Radios', category: VIGILANCIA_CATEGORY },
         { name: 'Charlas de seguridad dirigida a EL CLIENTE (presencial)', category: VIGILANCIA_CATEGORY },
         { name: 'Charlas de seguridad dirigida a EL CLIENTE (virtual)', category: VIGILANCIA_CATEGORY },
