@@ -233,7 +233,7 @@ table tbody tr:hover { background-color: #f8f9fa; }
 .modal-overlay.visible { opacity: 1; visibility: visible; }
 .modal-container {
   background-color: #ffffff; border-radius: var(--border-radius);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 100%; max-width: 600px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 100%; max-width: 820px;
   max-height: 90vh; display: flex; flex-direction: column; transform: scale(0.95);
   transition: transform 0.3s ease;
 }
