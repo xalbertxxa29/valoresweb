@@ -26,9 +26,28 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const availableOfferings = [
         { name: 'Plan de Responsabilidad Social', category: VIGILANCIA_CATEGORY },
+<<<<<<< HEAD
         { name: 'Capacitaciones', category: VIGILANCIA_CATEGORY },
         { name: 'Capacitaciones Hermético', category: VIGILANCIA_CATEGORY },
         { name: 'Charlas de seguridad del personal', category: VIGILANCIA_CATEGORY },
+=======
+        { name: 'Estudio de seguridad con optimización de tecnología', category: VIGILANCIA_CATEGORY },
+        { name: 'Reportes con Power BI', category: VIGILANCIA_CATEGORY },
+        { name: 'Software de control de Riegos (Total Risik)', category: VIGILANCIA_CATEGORY },
+        { name: 'Asistente Administrativo', category: VIGILANCIA_CATEGORY },
+        { name: 'Supervisión área con dron', category: VIGILANCIA_CATEGORY },
+        { name: 'Administrador de contrato', category: VIGILANCIA_CATEGORY },
+        { name: 'Celebración de festividades', category: VIGILANCIA_CATEGORY },
+        { name: 'Equipos de computo', category: VIGILANCIA_CATEGORY },
+        { name: 'Detector de metales', category: VIGILANCIA_CATEGORY },
+        { name: 'Linternas', category: VIGILANCIA_CATEGORY },
+        { name: 'Vara Luminosa', category: VIGILANCIA_CATEGORY },
+        { name: 'Equipo celular', category: VIGILANCIA_CATEGORY },
+        { name: 'Radios', category: VIGILANCIA_CATEGORY },
+        { name: 'Política de Procedimientos de Seguridad acorde a ISO 18788', category: VIGILANCIA_CATEGORY },
+        { name: 'Política de Inclusión y diversidad', category: VIGILANCIA_CATEGORY },
+        { name: 'Capacitaciones de refuerzo para personal Liderman (ESL)', category: VIGILANCIA_CATEGORY },
+>>>>>>> 7376b0ba31f1cc410f9b18ab168f11281395d92c
         { name: 'Charlas de seguridad dirigida a EL CLIENTE (presencial)', category: VIGILANCIA_CATEGORY },
         { name: 'Charlas de seguridad dirigida a EL CLIENTE (virtual)', category: VIGILANCIA_CATEGORY },
         { name: 'Correo de cierre de informe semanal', category: VIGILANCIA_CATEGORY },
