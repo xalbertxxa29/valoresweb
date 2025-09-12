@@ -26,11 +26,9 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const availableOfferings = [
         { name: 'Plan de Responsabilidad Social', category: VIGILANCIA_CATEGORY },
-<<<<<<< HEAD
         { name: 'Capacitaciones', category: VIGILANCIA_CATEGORY },
         { name: 'Capacitaciones Hermético', category: VIGILANCIA_CATEGORY },
         { name: 'Charlas de seguridad del personal', category: VIGILANCIA_CATEGORY },
-=======
         { name: 'Estudio de seguridad con optimización de tecnología', category: VIGILANCIA_CATEGORY },
         { name: 'Reportes con Power BI', category: VIGILANCIA_CATEGORY },
         { name: 'Software de control de Riegos (Total Risik)', category: VIGILANCIA_CATEGORY },
@@ -47,7 +45,6 @@ document.addEventListener("DOMContentLoaded", () => {
         { name: 'Política de Procedimientos de Seguridad acorde a ISO 18788', category: VIGILANCIA_CATEGORY },
         { name: 'Política de Inclusión y diversidad', category: VIGILANCIA_CATEGORY },
         { name: 'Capacitaciones de refuerzo para personal Liderman (ESL)', category: VIGILANCIA_CATEGORY },
->>>>>>> 7376b0ba31f1cc410f9b18ab168f11281395d92c
         { name: 'Charlas de seguridad dirigida a EL CLIENTE (presencial)', category: VIGILANCIA_CATEGORY },
         { name: 'Charlas de seguridad dirigida a EL CLIENTE (virtual)', category: VIGILANCIA_CATEGORY },
         { name: 'Correo de cierre de informe semanal', category: VIGILANCIA_CATEGORY },
@@ -756,3 +753,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
     App.init();
 });
+
