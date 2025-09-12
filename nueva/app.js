@@ -101,7 +101,8 @@ document.addEventListener("DOMContentLoaded", () => {
     ];
     
     // =================================================================================
-    // --- MODULE: UI (Manejo de la Interfaz de Usuario) ---
+    // --- MODULE: UI (Manejo de la Interfaz de Usuario) ---puebas
+
     // =================================================================================
     const UI = (() => {
         const elements = {
