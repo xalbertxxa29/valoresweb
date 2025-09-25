@@ -103,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
         { name: 'Auditoría Interna', category: VIGILANCIA_CATEGORY },
         { name: 'Reporte de Criminalidad', category: VIGILANCIA_CATEGORY },
         { name: 'SmartPanics', category: TECNOLOGIA_CATEGORY },
+        { name: 'LiderControl', category: TECNOLOGIA_CATEGORY },
         { name: 'Integración de plataformas GPS', category: TECNOLOGIA_CATEGORY },
         { name: 'Voice Bot IA de Control de Asistencia', category: TECNOLOGIA_CATEGORY },
         { name: 'Voice Bot IA de Control Operativo Nocturno/Diurno', category: TECNOLOGIA_CATEGORY },
