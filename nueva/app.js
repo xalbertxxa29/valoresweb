@@ -41,6 +41,11 @@ document.addEventListener("DOMContentLoaded", () => {
         { name: 'Linternas', category: VIGILANCIA_CATEGORY },
         { name: 'Vara Luminosa', category: VIGILANCIA_CATEGORY },
         { name: 'Equipo celular', category: VIGILANCIA_CATEGORY },
+        { name: 'bidones de agua de 20 L', category: VIGILANCIA_CATEGORY },
+        { name: 'Presentación de indicadores de gestión (kpi)', category: VIGILANCIA_CATEGORY },
+        { name: 'Reunión mensual para revisión de kpi', category: VIGILANCIA_CATEGORY },
+        { name: 'SSEE 12 horas', category: VIGILANCIA_CATEGORY },
+        { name: 'SSEE 08 horas', category: VIGILANCIA_CATEGORY },
         { name: 'Radios', category: VIGILANCIA_CATEGORY },
         { name: 'Política de Procedimientos de Seguridad acorde a ISO 18788', category: VIGILANCIA_CATEGORY },
         { name: 'Política de Inclusión y diversidad', category: VIGILANCIA_CATEGORY },
@@ -103,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
         { name: 'Auditoría Interna', category: VIGILANCIA_CATEGORY },
         { name: 'Reporte de Criminalidad', category: VIGILANCIA_CATEGORY },
         { name: 'SmartPanics', category: TECNOLOGIA_CATEGORY },
+        { name: 'LiderControl', category: TECNOLOGIA_CATEGORY },
         { name: 'Integración de plataformas GPS', category: TECNOLOGIA_CATEGORY },
         { name: 'Voice Bot IA de Control de Asistencia', category: TECNOLOGIA_CATEGORY },
         { name: 'Voice Bot IA de Control Operativo Nocturno/Diurno', category: TECNOLOGIA_CATEGORY },
@@ -751,3 +757,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
     App.init();
 });
+
