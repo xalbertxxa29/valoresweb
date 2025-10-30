@@ -4,20 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard Comercial</title>
-  
+
   <link rel="stylesheet" href="dashboard.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 </head>
 <body>
+  <!-- Logo fijo + botón hamburguesa -->
   <img src="logo.png" alt="Logo de la Empresa" id="fixed-logo">
   <button id="toggle-sidebar" aria-label="Abrir menú">☰</button>
 
-  <aside class="sidebar">
+  <!-- Sidebar -->
+  <aside class="sidebar" aria-label="Barra lateral de navegación">
     <div class="welcome-message">
       <h2 id="welcome-title">Bienvenido</h2>
       <p id="user-fullname">Cargando...</p>
@@ -35,27 +37,30 @@
     <button id="logout-btn"><i class="fas fa-sign-out-alt"></i><span>Cerrar sesión</span></button>
   </aside>
 
-  <main class="content">
+  <!-- Contenido -->
+  <main class="content" role="main">
+    <!-- Overlay de carga -->
     <div id="dashboardLoadingOverlay" style="position: absolute; inset: 0; background: rgba(244, 247, 246, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9998; backdrop-filter: blur(2px);">
-        <div class="dashboard-spinner"></div>
+      <div class="dashboard-spinner" aria-label="Cargando"></div>
     </div>
-    
-    <section id="inicio-section" class="dashboard-section">
-      <h1>Resumen General</h1>
+
+    <!-- INICIO -->
+    <section id="inicio-section" class="dashboard-section is-visible" aria-labelledby="inicio-title">
+      <h1 id="inicio-title">Resumen General</h1>
       <p class="subtitle">Métricas totales de la gestión de clientes.</p>
-      
+
       <div class="stats-cards-grid">
-        <div id="pending-card" class="stat-card clickable-card" role="button" tabindex="0">
+        <div id="pending-card" class="stat-card clickable-card" role="button" tabindex="0" aria-label="Ver solicitudes pendientes">
           <div class="icon-container" style="background-color: rgba(255, 167, 38, 0.1); color: #ffa726;"><i class="fas fa-clock"></i></div>
           <div class="info"><h3>Solicitudes Pendientes</h3><p class="count" id="pending-count">0</p></div>
         </div>
-        
-        <div id="won-card" class="stat-card clickable-card" role="button" tabindex="0">
+
+        <div id="won-card" class="stat-card clickable-card" role="button" tabindex="0" aria-label="Ver clientes ganados">
           <div class="icon-container" style="background-color: rgba(102, 187, 106, 0.1); color: #66bb6a;"><i class="fas fa-trophy"></i></div>
           <div class="info"><h3>Clientes Ganados</h3><p class="count" id="won-count">0</p></div>
         </div>
 
-        <div id="expiring-card" class="stat-card clickable-card" role="button" tabindex="0">
+        <div id="expiring-card" class="stat-card clickable-card" role="button" tabindex="0" aria-label="Ver contratos por vencer">
           <div class="icon-container" style="background-color: rgba(239, 83, 80, 0.1); color: #ef5350;"><i class="fas fa-file-contract"></i></div>
           <div class="info">
             <h3>Contratos por Vencer</h3>
@@ -68,13 +73,13 @@
         <div class="left-column">
           <div class="chart-container-full">
             <h2>Distribución de Servicios por Estado</h2>
-            <canvas id="services-chart"></canvas>
+            <canvas id="services-chart" aria-label="Gráfico de servicios por estado"></canvas>
           </div>
         </div>
         <div class="right-column">
           <div class="indicator-card">
             <h3><i class="fas fa-medal"></i> Ranking de Registros</h3>
-            <ul id="user-ranking-list"></ul>
+            <ul id="user-ranking-list" aria-live="polite"></ul>
           </div>
           <div class="indicator-card">
             <h3><i class="fas fa-tags"></i> Registros por Tipo</h3>
@@ -91,8 +96,9 @@
       </div>
     </section>
 
-    <section id="pendientes-section" class="dashboard-section">
-      <h1>Solicitudes Pendientes</h1>
+    <!-- PENDIENTES -->
+    <section id="pendientes-section" class="dashboard-section" aria-labelledby="pendientes-title">
+      <h1 id="pendientes-title">Solicitudes Pendientes</h1>
       <div class="table-responsive">
         <table>
           <thead>
@@ -108,14 +114,15 @@
           <tbody id="pending-table-body"></tbody>
         </table>
       </div>
-      <div class="pagination-controls" id="pending-pagination">
+      <div class="pagination-controls" id="pending-pagination" role="navigation" aria-label="Paginación pendientes">
         <button id="pending-prev" disabled>Anterior</button>
         <button id="pending-next">Siguiente</button>
       </div>
     </section>
 
-    <section id="ganados-section" class="dashboard-section">
-      <h1>Clientes Ganados</h1>
+    <!-- GANADOS -->
+    <section id="ganados-section" class="dashboard-section" aria-labelledby="ganados-title">
+      <h1 id="ganados-title">Clientes Ganados</h1>
       <div class="table-responsive">
         <table>
           <thead>
@@ -132,70 +139,75 @@
           <tbody id="won-table-body"></tbody>
         </table>
       </div>
-      <div class="pagination-controls" id="won-pagination">
+      <div class="pagination-controls" id="won-pagination" role="navigation" aria-label="Paginación ganados">
         <button id="won-prev" disabled>Anterior</button>
         <button id="won-next">Siguiente</button>
       </div>
     </section>
 
-    <section id="ejecucion-section" class="dashboard-section">
-      <h1>Clientes Ganados en Proceso de Ejecución</h1>
+    <!-- EJECUCIÓN -->
+    <section id="ejecucion-section" class="dashboard-section" aria-labelledby="ejecucion-title">
+      <h1 id="ejecucion-title">Clientes Ganados en Proceso de Ejecución</h1>
       <div class="table-responsive">
-          <table>
-              <thead>
-                  <tr>
-                      <th scope="col">Fecha de Creación</th>
-                      <th scope="col">Nombre del Cliente</th>
-                      <th scope="col">RUC</th>
-                      <th scope="col">Servicios</th>
-                      <th scope="col">Registrado Por</th>
-                      <th scope="col">Estado General</th>
-                  </tr>
-              </thead>
-              <tbody id="exec-table-body"><tr><td colspan="6">Cargando...</td></tr></tbody>
-          </table>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Fecha de Creación</th>
+              <th scope="col">Nombre del Cliente</th>
+              <th scope="col">RUC</th>
+              <th scope="col">Servicios</th>
+              <th scope="col">Registrado Por</th>
+              <th scope="col">Estado General</th>
+            </tr>
+          </thead>
+          <tbody id="exec-table-body"><tr><td colspan="6">Cargando...</td></tr></tbody>
+        </table>
       </div>
     </section>
 
-    <section id="registrar-section" class="dashboard-section">
-      <iframe id="registrar-iframe" src="nueva/nueva.html?embedded=true" style="width: 100%; height: 100%; border: none;"></iframe>
+    <!-- REGISTRAR -->
+    <section id="registrar-section" class="dashboard-section" aria-labelledby="registrar-title">
+      <h1 id="registrar-title" class="sr-only">Registrar nueva solicitud</h1>
+      <iframe id="registrar-iframe" src="nueva/nueva.html?embedded=true" style="width: 100%; height: 100%; border: none;" title="Formulario de registro"></iframe>
     </section>
   </main>
 
-  <div id="client-modal-overlay" class="modal-overlay">
+  <!-- Modal genérico de cliente -->
+  <div id="client-modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-container">
-        <div class="modal-header">
-            <h2 id="modal-title"></h2>
-            <button id="modal-close-btn" class="modal-close-button">&times;</button>
-        </div>
-        <div id="modal-body" class="modal-body"></div>
-        <div id="modal-footer" class="modal-footer"></div>
+      <div class="modal-header">
+        <h2 id="modal-title"></h2>
+        <button id="modal-close-btn" class="modal-close-button" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+      <div id="modal-footer" class="modal-footer"></div>
     </div>
   </div>
-  
-  <div id="services-editor-modal" class="modal-overlay">
+
+  <!-- Editor de servicios (desplegables desde Firebase) -->
+  <div id="services-editor-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="services-editor-title">
     <div class="modal-container modal-lg">
       <div class="modal-header">
         <h2 id="services-editor-title">Editar Servicios Contratados</h2>
-        <button id="services-editor-close-btn" class="modal-close-button">&times;</button>
+        <button id="services-editor-close-btn" class="modal-close-button" aria-label="Cerrar">&times;</button>
       </div>
       <div id="services-editor-body" class="modal-body-scrollable">
         <input type="hidden" id="services-editor-doc-path">
-        
+
         <div class="form-section">
-            <div class="form-section-header">
-                <h3>Valores Agregados Vigilancia</h3>
-                <button id="edit-add-vigilancia-btn" class="btn-add-row"><i class="fas fa-plus"></i> Añadir</button>
-            </div>
-            <div id="edit-vigilancia-offerings-container" class="offerings-container"></div>
+          <div class="form-section-header">
+            <h3>Valores Agregados Vigilancia</h3>
+            <button id="edit-add-vigilancia-btn" class="btn-add-row"><i class="fas fa-plus"></i> Añadir</button>
+          </div>
+          <div id="edit-vigilancia-offerings-container" class="offerings-container"></div>
         </div>
 
         <div class="form-section">
-            <div class="form-section-header">
-                <h3>Valores Agregados con Tecnología</h3>
-                <button id="edit-add-tecnologia-btn" class="btn-add-row"><i class="fas fa-plus"></i> Añadir</button>
-            </div>
-            <div id="edit-tecnologia-offerings-container" class="offerings-container"></div>
+          <div class="form-section-header">
+            <h3>Valores Agregados con Tecnología</h3>
+            <button id="edit-add-tecnologia-btn" class="btn-add-row"><i class="fas fa-plus"></i> Añadir</button>
+          </div>
+          <div id="edit-tecnologia-offerings-container" class="offerings-container"></div>
         </div>
       </div>
       <div id="services-editor-footer" class="modal-footer">
@@ -205,11 +217,12 @@
     </div>
   </div>
 
-  <div id="execution-modal-overlay" class="modal-overlay">
+  <!-- Modal de ejecución -->
+  <div id="execution-modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="execution-modal-title">
     <div class="modal-container">
       <div class="modal-header">
         <h2 id="execution-modal-title">Ejecución de servicios</h2>
-        <button id="execution-modal-close" class="modal-close-button">&times;</button>
+        <button id="execution-modal-close" class="modal-close-button" aria-label="Cerrar">&times;</button>
       </div>
       <div class="modal-body">
         <div class="table-responsive">
@@ -227,18 +240,27 @@
     </div>
   </div>
 
-  <div id="date-picker-modal" class="modal-overlay">
+  <!-- Modal: seleccionar fecha de implementación (incluye compat won-*) -->
+  <div id="date-picker-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="date-picker-title">
     <div class="modal-container" style="max-width: 450px;">
       <div class="modal-header">
         <h2 id="date-picker-title">Establecer Fecha de Implementación</h2>
-        <button id="date-picker-close-btn" class="modal-close-button">&times;</button>
+        <button id="date-picker-close-btn" class="modal-close-button" aria-label="Cerrar">&times;</button>
       </div>
       <div class="modal-body" style="grid-template-columns: 1fr;">
+        <!-- Doc path (principal) -->
         <input type="hidden" id="date-picker-doc-path">
+        <!-- Doc path (compat opcional) -->
+        <input type="hidden" id="won-doc-path">
+
         <p style="margin-bottom: 1rem; color: var(--text-secondary);">Por favor, selecciona la fecha de inicio para este cliente.</p>
+
         <div class="modal-field-full">
           <label for="implementation-date-input">Fecha de Implementación</label>
+          <!-- Input visible principal -->
           <input type="date" id="implementation-date-input" class="modal-input">
+          <!-- Compat si tu JS usa este ID -->
+          <input type="hidden" id="won-date-input" />
         </div>
       </div>
       <div class="modal-footer">
@@ -247,16 +269,68 @@
       </div>
     </div>
   </div>
-    
+
+  <!-- Modal “Agregar opción” para catálogos (opcional) -->
+  <div id="add-option-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="add-option-title">
+    <div class="modal-container" style="max-width: 420px;">
+      <div class="modal-header">
+        <h2 id="add-option-title">Nueva opción</h2>
+        <button id="add-option-cancel-btn" class="modal-close-button" aria-label="Cerrar">&times;</button>
+      </div>
+      <div class="modal-body" style="grid-template-columns: 1fr;">
+        <p style="margin-bottom: .5rem; color: var(--text-secondary);">
+          Escribe el nombre del ítem que quieres agregar al despegable.
+        </p>
+        <div class="modal-field-full">
+          <label for="new-option-input">Nombre del ítem</label>
+          <input id="new-option-input" type="text" class="modal-input" placeholder="Ej. Rondas de Video Inteligente">
+        </div>
+        <small id="add-option-error" style="color: #ef4444; margin-top: .25rem;"></small>
+      </div>
+      <div class="modal-footer">
+        <button id="add-option-cancel-btn-2" class="modal-button btn-modal-secondary">Cancelar</button>
+        <button id="add-option-save-btn" class="modal-button btn-modal-primary">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SDKs Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
 
+  <!-- Utilidades -->
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
+  <!-- Lógica Comercial -->
   <script src="comercial.js" defer></script>
+
+  <!-- Helpers de compatibilidad mínimos -->
+  <script>
+    // Cierre del modal "Agregar opción"
+    (function () {
+      const overlay = document.getElementById('add-option-modal');
+      const btnX = document.getElementById('add-option-cancel-btn');
+      const btnCancel = document.getElementById('add-option-cancel-btn-2');
+      function close() { overlay.classList.add('hidden'); }
+      btnX?.addEventListener('click', close);
+      btnCancel?.addEventListener('click', close);
+    })();
+
+    // Sincroniza date visible con IDs de compat (won-*)
+    (function () {
+      const dateVisible = document.getElementById('implementation-date-input');
+      const dateCompat  = document.getElementById('won-date-input');
+      const docMain     = document.getElementById('date-picker-doc-path');
+      const docCompat   = document.getElementById('won-doc-path');
+      dateVisible?.addEventListener('input', () => { if (dateCompat) dateCompat.value = dateVisible.value; });
+      dateCompat?.addEventListener('input', () => { if (dateVisible && !dateVisible.value) dateVisible.value = dateCompat.value; });
+      const setDoc = (val) => { if (docMain) docMain.value = val; if (docCompat) docCompat.value = val; };
+      window.__setWonDocPath = setDoc;
+    })();
+  </script>
 </body>
 </html>

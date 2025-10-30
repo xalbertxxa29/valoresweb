@@ -4,14 +4,37 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard Operativo</title>
-  
+
+  <!-- Estilos base del proyecto -->
   <link rel="stylesheet" href="dashboard.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
+
+  <!-- FIX visual para selects dentro de modales (evita clipping) -->
+  <style>
+    /* Asegura que los dropdowns de <select> no se corten */
+    .modal-overlay { z-index: 9999; }
+    .modal-container { position: relative; overflow: visible; }
+    .modal-body, .modal-body-scrollable,
+    .offerings-container, .offering-row { overflow: visible; }
+    .modal-body-scrollable { max-height: min(70vh, 820px); overflow-y: auto; padding-right: 6px; }
+    .offering-row { background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 10px; padding: .75rem; margin-bottom: .75rem; }
+    .offering-row-header { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+    .offering-row-header select.offering-name { min-width: 280px; }
+    .offering-row-actions, .offering-row-header .remove-offering-row-btn { margin-left: auto; }
+    .offering-row-body { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .5rem; }
+    .offering-row-body input[type="text"][readonly] { background: #f7f7f8; }
+    .btn-add-row { display: inline-flex; align-items: center; gap: .5rem; }
+    .form-section { margin-bottom: 1.25rem; }
+    .form-section-header { display:flex; align-items:center; justify-content: space-between; margin-bottom: .5rem; }
+    .table-responsive { overflow:auto; }
+    #dashboardLoadingOverlay { display: none; } /* visible sólo cuando el JS lo activa */
+    /* Sidebar toggle opcional */
+    body.sidebar-open .sidebar { transform: translateX(0); }
+  </style>
 </head>
 <body>
   <img src="logo.png" alt="Logo de la Empresa" id="fixed-logo">
@@ -34,14 +57,16 @@
   </aside>
 
   <main class="content">
-    <div id="dashboardLoadingOverlay" style="position: absolute; inset: 0; background: rgba(244, 247, 246, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9998; backdrop-filter: blur(2px);">
-        <div class="dashboard-spinner"></div>
+    <!-- Overlay de carga (lo controla el JS) -->
+    <div id="dashboardLoadingOverlay" style="position: absolute; inset: 0; background: rgba(244, 247, 246, 0.8); display: none; justify-content: center; align-items: center; z-index: 9998; backdrop-filter: blur(2px);">
+      <div class="dashboard-spinner"></div>
     </div>
-    
-    <section id="inicio-section" class="dashboard-section">
+
+    <!-- ===== INICIO ===== -->
+    <section id="inicio-section" class="dashboard-section is-visible">
       <h1>Resumen General</h1>
       <p class="subtitle">Métricas de gestión para los clientes de tu zona.</p>
-      
+
       <div class="stats-cards-grid">
         <div id="won-card" class="stat-card clickable-card" role="button" tabindex="0">
           <div class="icon-container" style="background-color: rgba(102, 187, 106, 0.1); color: #66bb6a;"><i class="fas fa-trophy"></i></div>
@@ -89,6 +114,7 @@
       </div>
     </section>
 
+    <!-- ===== GANADOS ===== -->
     <section id="ganados-section" class="dashboard-section">
       <h1>Clientes Ganados</h1>
       <div class="table-responsive">
@@ -114,43 +140,46 @@
       </div>
     </section>
 
+    <!-- ===== EJECUCIÓN ===== -->
     <section id="ejecucion-section" class="dashboard-section">
       <h1>Clientes Ganados en Proceso de Ejecución</h1>
       <div class="table-responsive">
-          <table>
-              <thead>
-                  <tr>
-                      <th scope="col">Fecha de Creación</th>
-                      <th scope="col">Nombre del Cliente</th>
-                      <th scope="col">RUC</th>
-                      <th scope="col">Servicios</th>
-                      <th scope="col">Registrado Por</th>
-                      <th scope="col">Estado General</th>
-                      <th scope="col">Acciones</th>
-                  </tr>
-              </thead>
-              <tbody id="exec-table-body"><tr><td colspan="7">Cargando...</td></tr></tbody>
-          </table>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Fecha de Creación</th>
+              <th scope="col">Nombre del Cliente</th>
+              <th scope="col">RUC</th>
+              <th scope="col">Servicios</th>
+              <th scope="col">Registrado Por</th>
+              <th scope="col">Estado General</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="exec-table-body"><tr><td colspan="7">Cargando...</td></tr></tbody>
+        </table>
       </div>
     </section>
   </main>
 
+  <!-- Modal Detalles -->
   <div id="client-modal-overlay" class="modal-overlay">
     <div class="modal-container">
-        <div class="modal-header">
-            <h2 id="modal-title"></h2>
-            <button id="modal-close-btn" class="modal-close-button">&times;</button>
-        </div>
-        <div id="modal-body" class="modal-body"></div>
-        <div id="modal-footer" class="modal-footer"></div>
+      <div class="modal-header">
+        <h2 id="modal-title"></h2>
+        <button id="modal-close-btn" class="modal-close-button" aria-label="Cerrar">&times;</button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+      <div id="modal-footer" class="modal-footer"></div>
     </div>
   </div>
-  
+
+  <!-- Modal EJECUCIÓN -->
   <div id="execution-modal-overlay" class="modal-overlay">
     <div class="modal-container">
       <div class="modal-header">
         <h2 id="execution-modal-title">Ejecución de servicios</h2>
-        <button id="execution-modal-close" class="modal-close-button">&times;</button>
+        <button id="execution-modal-close" class="modal-close-button" aria-label="Cerrar">&times;</button>
       </div>
       <div class="modal-body">
         <div class="table-responsive">
@@ -168,27 +197,74 @@
     </div>
   </div>
 
-  <div id="notification-modal-overlay" class="modal-overlay">
-    <div class="modal-container" style="max-width: 400px; text-align: center;">
-        <div id="notification-modal-body" class="modal-body" style="display: block; padding: 2rem 1.5rem;">
-            <div id="notification-icon" style="font-size: 3rem; margin-bottom: 1rem;"></div>
-            <p id="notification-message" style="font-size: 1.1rem; margin: 0;"></p>
+  <!-- Modal EDITOR DE SERVICIOS -->
+  <div id="services-editor-modal" class="modal-overlay">
+    <div class="modal-container modal-lg">
+      <div class="modal-header">
+        <h2 id="services-editor-title">Editar Servicios Contratados</h2>
+        <button id="services-editor-close-btn" class="modal-close-button" aria-label="Cerrar">&times;</button>
+      </div>
+      <div id="services-editor-body" class="modal-body-scrollable">
+        <input type="hidden" id="services-editor-doc-path">
+        <div class="form-section">
+          <div class="form-section-header">
+            <h3>Valores Agregados Vigilancia</h3>
+            <button id="edit-add-vigilancia-btn" class="btn-add-row" type="button" aria-label="Añadir fila Vigilancia">
+              <i class="fas fa-plus"></i> Añadir
+            </button>
+          </div>
+          <div id="edit-vigilancia-offerings-container" class="offerings-container"></div>
         </div>
-        <div class="modal-footer">
-            <button id="notification-close-btn" class="modal-button btn-modal-primary">Aceptar</button>
+        <div class="form-section">
+          <div class="form-section-header">
+            <h3>Valores Agregados con Tecnología</h3>
+            <button id="edit-add-tecnologia-btn" class="btn-add-row" type="button" aria-label="Añadir fila Tecnología">
+              <i class="fas fa-plus"></i> Añadir
+            </button>
+          </div>
+          <div id="edit-tecnologia-offerings-container" class="offerings-container"></div>
         </div>
+      </div>
+      <div id="services-editor-footer" class="modal-footer">
+        <button id="services-editor-cancel-btn" class="modal-button btn-modal-secondary" type="button">Cancelar</button>
+        <button id="services-editor-save-btn" class="modal-button btn-modal-primary"   type="button">Guardar Cambios</button>
+      </div>
     </div>
   </div>
-    
-  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+  <!-- Modal de notificación genérico -->
+  <div id="notification-modal-overlay" class="modal-overlay">
+    <div class="modal-container" style="max-width: 400px; text-align: center;">
+      <div id="notification-modal-body" class="modal-body" style="display: block; padding: 2rem 1.5rem;">
+        <div id="notification-icon" style="font-size: 3rem; margin-bottom: 1rem;"></div>
+        <p id="notification-message" style="font-size: 1.1rem; margin: 0;"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="notification-close-btn" class="modal-button btn-modal-primary">Aceptar</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js" defer></script>
+  <script src="firebase-config.js" defer></script>
+
+  <!-- Utilidades -->
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0" defer></script>
+
+  <!-- App -->
   <script src="operativo.js" defer></script>
+
+  <!-- Mini script opcional para menú lateral -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const t = document.getElementById('toggle-sidebar');
+      t && t.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+    });
+  </script>
 </body>
 </html>
