@@ -3,17 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // Firebase & Persistencia
   // =========================
-  if (typeof firebase === 'undefined' || typeof firebaseConfig === 'undefined') {
-    alert('Error crítico de configuración de Firebase.');
-    return;
-  }
-  firebase.initializeApp(firebaseConfig);
+  // Firebase ya está inicializado en firebase-config.js
   const auth = firebase.auth();
   const db   = firebase.firestore();
   window.auth = auth; window.db = db;
 
-  // Persistencia offline (multi-tab)
-  db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+  // Persistencia offline ya fue habilitada en firebase-config.js
 
   // =========================
   // Constantes & Estado
@@ -44,46 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // Utilidades DESPEGABLES
   // =========================
-  function parseDesplegableDoc(docSnap) {
-    if (!docSnap.exists) return [];
-    const data = docSnap.data() || {};
-    if (Array.isArray(data.items)) {
-      return [...new Set(data.items.filter(v => typeof v === 'string' && v.trim()))];
-    }
-    // soporte legado { "1": "opción", "2": "opción", ... }
-    return Object.entries(data)
-      .filter(([k, v]) => typeof v === 'string' && v.trim())
-      .sort((a, b) => {
-        const ak = Number(a[0]), bk = Number(b[0]);
-        return (Number.isFinite(ak) && Number.isFinite(bk)) ? ak - bk : a[0].localeCompare(b[0]);
-      })
-      .map(([, v]) => v.trim());
-  }
-
-  async function loadOfferingsFromFirestore() {
-    try {
-      const coll = db.collection('DESPEGABLES');
-      const [vig, tec] = await Promise.all([
-        coll.doc('VIGILANCIA').get(),
-        coll.doc('TECNOLOGIA').get(),
-      ]);
-      vigNames = parseDesplegableDoc(vig);
-      tecNames = parseDesplegableDoc(tec);
-      availableOfferings = [
-        ...vigNames.map(name => ({ name, category: VIGILANCIA_CATEGORY })),
-        ...tecNames.map(name => ({ name, category: TECNOLOGIA_CATEGORY })),
-      ];
-      refreshAllOfferingSelects();
-    } catch (err) {
-      console.error('Error cargando DESPEGABLES:', err);
-    }
-  }
-
-  function watchDesplegablesRealtime() {
-    const coll = db.collection('DESPEGABLES');
-    coll.doc('VIGILANCIA').onSnapshot(() => loadOfferingsFromFirestore());
-    coll.doc('TECNOLOGIA').onSnapshot(() => loadOfferingsFromFirestore());
-  }
+  // Funciones compartidas desde shared-utils.js:
+  // - parseDesplegableDoc()
+  // - loadOfferingsFromFirestore()
+  // - watchDesplegablesRealtime()
+  // - addOptionToFirestore()
+  // - buildOptionsHTML() personalizado para dashboard
 
   function buildOptionsHTML(category, selectedName) {
     let options = [];
@@ -99,32 +60,24 @@ document.addEventListener('DOMContentLoaded', () => {
       .join('');
   }
 
+  // Función para refrescar todos los selects con las opciones actualizadas
   function refreshAllOfferingSelects() {
-    // Sólo refresca selects dentro del editor de servicios
-    const containers = [
-      document.getElementById('edit-vigilancia-offerings-container'),
-      document.getElementById('edit-tecnologia-offerings-container'),
-    ].filter(Boolean);
-
-    containers.forEach(container => {
-      container.querySelectorAll('.offering-row').forEach(row => {
-        const sel = row.querySelector('.offering-name');
-        const cat = row.querySelector('.offering-category')?.value;
-        const prev = sel?.value || '';
-        if (sel && cat) {
-          sel.innerHTML = `<option value="">Seleccionar...</option>` + buildOptionsHTML(cat, prev);
-          if (prev) sel.value = prev;
-        }
-      });
+    document.querySelectorAll('.offering-name').forEach(select => {
+      const row = select.closest('.offering-row');
+      if (!row) return;
+      
+      const category = row.querySelector('.offering-category')?.value;
+      if (!category) return;
+      
+      const currentValue = select.value;
+      const newOptions = buildOptionsHTML(category, currentValue);
+      
+      // Preservar la opción "Seleccionar..." inicial
+      select.innerHTML = `<option value="">Seleccionar...</option>${newOptions}`;
+      if (currentValue) {
+        select.value = currentValue;
+      }
     });
-  }
-
-  async function addOptionToFirestore(category, optionName) {
-    const docId = category === VIGILANCIA_CATEGORY ? 'VIGILANCIA' : 'TECNOLOGIA';
-    const ref = db.collection('DESPEGABLES').doc(docId);
-    const clean = (optionName || '').trim();
-    if (!clean) throw new Error('Nombre vacío');
-    await ref.set({ items: firebase.firestore.FieldValue.arrayUnion(clean) }, { merge: true });
   }
 
   // =========================
@@ -177,27 +130,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let addOptionContext = null; // { category, selectEl }
 
+  // Verificación inicial de elementos del modal
+  console.log('🔧 Verificando elementos del modal de agregar opción:');
+  console.log('📍 addOptionOverlay:', !!addOptionOverlay);
+  console.log('📍 addOptionTitle:', !!addOptionTitle);
+  console.log('📍 addOptionInput:', !!addOptionInput);
+  console.log('📍 addOptionError:', !!addOptionError);
+  console.log('📍 addOptionSaveBtn:', !!addOptionSaveBtn);
+  console.log('📍 addOptionCancelXs:', !!addOptionCancelXs);
+  console.log('📍 addOptionCancel2:', !!addOptionCancel2);
+
   function showAddOptionModal(category, selectEl) {
+    console.log('🔴 showAddOptionModal llamada:', category, !!selectEl);
+    console.log('📍 addOptionOverlay encontrado:', !!addOptionOverlay);
+    console.log('📍 addOptionTitle encontrado:', !!addOptionTitle);
+    console.log('📍 addOptionInput encontrado:', !!addOptionInput);
+    
     addOptionContext = { category, selectEl };
-    addOptionTitle.textContent = `Nueva opción para ${category === VIGILANCIA_CATEGORY ? 'Vigilancia' : 'Tecnología'}`;
-    addOptionInput.value = '';
-    addOptionError.textContent = '';
-    addOptionOverlay.classList.remove('hidden');
-    addOptionInput.focus();
+    if (addOptionTitle) {
+      addOptionTitle.textContent = `Nueva opción para ${category === VIGILANCIA_CATEGORY ? 'Vigilancia' : 'Tecnología'}`;
+    }
+    if (addOptionInput) {
+      addOptionInput.value = '';
+    }
+    if (addOptionError) {
+      addOptionError.textContent = '';
+    }
+    if (addOptionOverlay) {
+      addOptionOverlay.classList.add('visible');
+      console.log('✅ Modal de agregar opción abierto');
+    } else {
+      console.error('❌ No se pudo abrir modal: addOptionOverlay no encontrado');
+    }
+    if (addOptionInput) {
+      addOptionInput.focus();
+    }
   }
   function hideAddOptionModal() {
-    addOptionOverlay.classList.add('hidden');
+    if (addOptionOverlay) {
+      addOptionOverlay.classList.remove('visible');
+      console.log('✅ Modal de agregar opción cerrado');
+    }
     addOptionContext = null;
   }
-  addOptionCancelXs?.addEventListener('click', hideAddOptionModal);
-  addOptionCancel2?.addEventListener('click', hideAddOptionModal);
+  addOptionCancelXs?.addEventListener('click', () => {
+    console.log('🔴 Click en cancelar modal (X)');
+    hideAddOptionModal();
+  });
+  addOptionCancel2?.addEventListener('click', () => {
+    console.log('🔴 Click en cancelar modal (botón)');
+    hideAddOptionModal();
+  });
 
   addOptionSaveBtn?.addEventListener('click', async () => {
+    console.log('🔴 Click en guardar opción');
     const value = (addOptionInput.value || '').trim();
-    if (value.length < 3) { addOptionError.textContent = 'Mínimo 3 caracteres.'; return; }
+    if (value.length < 3) { 
+      if (addOptionError) addOptionError.textContent = 'Mínimo 3 caracteres.'; 
+      return; 
+    }
     try {
       loadingOverlay.style.display = 'flex';
       await addOptionToFirestore(addOptionContext.category, value);
+      console.log('✅ Opción guardada exitosamente');
       hideAddOptionModal();
       // Refrescar selects y seleccionar inmediatamente
       setTimeout(() => {
@@ -255,17 +250,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const uiName = sessionStorage.getItem('userName');
     document.getElementById('user-fullname').textContent = uiName || user.email;
 
-    // Cargar despegables desde Firestore y activar realtime
-    await loadOfferingsFromFirestore();
-    watchDesplegablesRealtime();
+    // Cargar desplegables desde Firestore y activar realtime
+    // Usando shared-utils.js con callbacks personalizados para dashboard
+    const dashboardState = { vigNames, tecNames };
+    
+    await loadOfferingsFromFirestore({
+      state: dashboardState,
+      onSuccess: () => {
+        vigNames = dashboardState.vigNames;
+        tecNames = dashboardState.tecNames;
+        availableOfferings = [
+          ...vigNames.map(name => ({ name, category: VIGILANCIA_CATEGORY })),
+          ...tecNames.map(name => ({ name, category: TECNOLOGIA_CATEGORY })),
+        ];
+        refreshAllOfferingSelects();
+      }
+    });
+    
+    watchDesplegablesRealtime({
+      state: dashboardState,
+      onUpdate: () => {
+        vigNames = dashboardState.vigNames;
+        tecNames = dashboardState.tecNames;
+        availableOfferings = [
+          ...vigNames.map(name => ({ name, category: VIGILANCIA_CATEGORY })),
+          ...tecNames.map(name => ({ name, category: TECNOLOGIA_CATEGORY })),
+        ];
+        refreshAllOfferingSelects();
+      }
+    });
 
     // Menú y navegación
     menuOptions.forEach(btn => btn.addEventListener('click', () => showSection(btn.dataset.section)));
-    document.getElementById('logout-btn').addEventListener('click', async () => { await auth.signOut(); window.location.href = 'index.html'; });
-
-    // Botones editor servicios
-    editAddVigBtn?.addEventListener('click', () => editVigilanciaContainer.appendChild(createOfferingRow(VIGILANCIA_CATEGORY)));
-    editAddTecBtn?.addEventListener('click', () => editTecnologiaContainer.appendChild(createOfferingRow(TECNOLOGIA_CATEGORY)));
+    document.getElementById('logout-btn').addEventListener('click', async () => { await auth.signOut(); window.location.href = 'index.html'; });    // Botones editor servicios
+    console.log('🔧 Configurando event listeners para botones agregar');
+    console.log('📍 editAddVigBtn encontrado:', !!editAddVigBtn);
+    console.log('📍 editAddTecBtn encontrado:', !!editAddTecBtn);
+    console.log('📍 editVigilanciaContainer encontrado:', !!editVigilanciaContainer);
+    console.log('📍 editTecnologiaContainer encontrado:', !!editTecnologiaContainer);
+    
+    editAddVigBtn?.addEventListener('click', (e) => {
+      console.log('🟢 Click en botón agregar vigilancia');
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        const newRow = createOfferingRow(VIGILANCIA_CATEGORY);
+        editVigilanciaContainer.appendChild(newRow);
+        console.log('✅ Fila de vigilancia agregada exitosamente');
+      } catch (error) {
+        console.error('❌ Error al agregar fila de vigilancia:', error);
+      }
+    });
+    
+    editAddTecBtn?.addEventListener('click', (e) => {
+      console.log('🟢 Click en botón agregar tecnología');
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        const newRow = createOfferingRow(TECNOLOGIA_CATEGORY);
+        editTecnologiaContainer.appendChild(newRow);
+        console.log('✅ Fila de tecnología agregada exitosamente');
+      } catch (error) {
+        console.error('❌ Error al agregar fila de tecnología:', error);
+      }
+    });
     servicesEditorCloseBtn?.addEventListener('click', () => closeModal(servicesEditorModal));
     servicesEditorCancelBtn?.addEventListener('click', () => closeModal(servicesEditorModal));
     servicesEditorSaveBtn?.addEventListener('click', saveServicesChanges);
@@ -291,8 +339,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Secciones
   // =========================
   function showSection(sectionId) {
+    console.log('🔄 Cambiando a sección:', sectionId);
+    
     document.querySelectorAll('.dashboard-section').forEach(s => s.classList.remove('is-visible'));
-    document.getElementById(`${sectionId}-section`)?.classList.add('is-visible');
+    const targetSection = document.getElementById(`${sectionId}-section`);
+    
+    if (targetSection) {
+      targetSection.classList.add('is-visible');
+      console.log('✅ Sección activada:', sectionId);
+    } else {
+      console.error('❌ No se encontró la sección:', `${sectionId}-section`);
+    }
 
     menuOptions.forEach(btn => btn.classList.toggle('active', btn.dataset.section === sectionId));
 
@@ -306,12 +363,20 @@ document.addEventListener('DOMContentLoaded', () => {
   async function ensureRegistrarIframe() {
     const frame = document.getElementById('registrar-iframe');
     if (!frame || frame.dataset.srcChecked === '1') return;
+    
     try {
       const testUrl = 'nueva/nueva.html';
       const r = await fetch(testUrl, { method: 'HEAD' });
-      frame.src = (r.ok ? testUrl : 'nueva.html') + '?embedded=true';
-    } catch {
-      frame.src = 'nueva.html?embedded=true';
+      if (r.ok) {
+        frame.src = testUrl + '?embedded=true';
+        console.log('✅ Cargando iframe desde: nueva/nueva.html');
+      } else {
+        console.error('❌ No se pudo acceder a nueva/nueva.html, status:', r.status);
+        frame.src = 'nueva/nueva.html?embedded=true'; // Forzar la ruta correcta
+      }
+    } catch (error) {
+      console.error('❌ Error al verificar iframe:', error);
+      frame.src = 'nueva/nueva.html?embedded=true'; // Usar la ruta correcta
     }
     frame.dataset.srcChecked = '1';
   }
@@ -389,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
     const ul = document.getElementById('user-ranking-list');
     ul.innerHTML = top3Resolved.length
-      ? top3Resolved.map(i => `<li><span>${i.display}</span><strong>${i.count}</strong></li>`).join('')
+      ? top3Resolved.map(i => `<li><span class="user-info">${i.display}</span><span class="user-rank">${i.count}</span></li>`).join('')
       : '<li>No hay datos.</li>';
 
     // Contadores por tipo
@@ -903,9 +968,22 @@ document.addEventListener('DOMContentLoaded', () => {
     row.addEventListener('input', compute);
     row.addEventListener('change', compute);
     row.querySelector('.remove-offering-row-btn')?.addEventListener('click', () => row.remove());
-    row.querySelector('.btn-add-option')?.addEventListener('click', () => {
-      const sel = row.querySelector('.offering-name');
-      showAddOptionModal(category, sel);
+    
+    // Event listener para el botón "+" de agregar opción dentro de cada fila
+    const addOptionBtn = row.querySelector('.btn-add-option');
+    console.log('🔧 Configurando botón + en fila:', !!addOptionBtn);
+    
+    addOptionBtn?.addEventListener('click', (e) => {
+      console.log('🟢 Click en botón + de agregar opción');
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        const sel = row.querySelector('.offering-name');
+        console.log('📍 Select encontrado:', !!sel, 'Categoría:', category);
+        showAddOptionModal(category, sel);
+      } catch (error) {
+        console.error('❌ Error al abrir modal de agregar opción:', error);
+      }
     });
 
     if (offeringData.name) compute();

@@ -1,7 +1,42 @@
 :root {
-  --color-primary: #e70909;
-  --gray-300: #ccc;
-  --radius: 0.5rem;
+  /* Importamos variables de variables.css */
+  --color-primary: #1a3a6b;
+  --color-accent: #00a896;
+  --color-danger: #e70909;
+  --color-bg-light: #f4f7f6;
+  --color-bg-white: #ffffff;
+  --color-bg-darker: #0f1f3a;
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+  --color-text-primary: #33374d;
+  --color-text-secondary: #6c757d;
+  --color-text-light: #f1f5f9;
+  --color-text-white: #ffffff;
+  
+  /* Espaciado */
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1.25rem;
+  --space-lg: 2rem;
+  
+  /* Tipografía */
+  --font-family: 'Poppins', 'Arial', sans-serif;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-weight-bold: 700;
+  
+  /* Bordes */
+  --border-radius: 12px;
+  --border-radius-sm: 8px;
+  
+  /* Sombras */
+  --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.3);
+  
+  /* Transiciones */
   --transition: 0.3s ease;
 }
 
@@ -14,13 +49,13 @@
 
 /* 2. Body y fondo */
 body {
-  font-family: Arial, sans-serif;
+  font-family: var(--font-family);
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
   background: url('imagenes/background.png') center/cover no-repeat;
-  color: #fff;
+  color: var(--color-text-white);
   animation: fadeSlideUp 0.8s var(--transition) forwards;
 }
 
@@ -38,9 +73,9 @@ body {
 
 /* 4. Contenedor de login */
 .login-container {
-  background: rgba(0, 0, 0, 0.6);
-  padding: 2rem;
-  border-radius: var(--radius);
+  background: var(--color-bg-overlay);
+  padding: var(--space-lg);
+  border-radius: var(--border-radius);
   text-align: center;
   width: 100%;
   max-width: 400px;
@@ -48,22 +83,22 @@ body {
 
 /* 5. Título */
 .login-title {
-  margin-bottom: 1.5rem;
-  font-size: 1.75rem;
-  color: #fff;
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-3xl);
+  color: var(--color-text-white);
 }
 
 /* 6. Card */
 .login-card {
-  background: #fff;
-  padding: 1.5rem;
-  border-radius: var(--radius);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  background: var(--color-bg-white);
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
   transition: transform var(--transition), box-shadow var(--transition);
 }
 .login-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-xl);
 }
 
 /* 7. Inputs */
@@ -71,26 +106,26 @@ body {
   position: relative;
   width: 100%;
   max-width: 360px;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-sm);
 }
 .input-group label {
   display: block;
   text-align: left;
-  margin-bottom: 0.25rem;
-  font-weight: bold;
-  color: #333;
+  margin-bottom: var(--space-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
 }
 .input-group input {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius);
-  font-size: 1rem;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-text-secondary);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-base);
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 .input-group input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 8px rgba(231, 9, 9, 0.3);
+  border-color: var(--color-danger);
+  box-shadow: 0 0 8px var(--overlay-danger-glow);
   outline: none;
 }
 
@@ -99,7 +134,7 @@ body {
   position: relative;
   width: 100%;
   max-width: 360px;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-sm);
 }
 .password-field input {
   padding-right: 2.5rem;
@@ -107,18 +142,18 @@ body {
 .password-field button {
   position: absolute;
   top: 50%;
-  right: 1rem;
+  right: var(--space-md);
   transform: translateY(-50%);
   width: 1.5rem;
   height: 1.5rem;
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--gray-300);
+  color: var(--color-text-secondary);
   transition: color var(--transition), transform var(--transition);
 }
 .password-field button:hover {
-  color: var(--color-primary);
+  color: var(--color-danger);
   transform: rotate(20deg);
 }
 
@@ -126,13 +161,13 @@ body {
 .remember-me {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
 }
 .remember-me label {
-  color: #333;
-  font-weight: bold;
-  font-size: 1rem;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
   cursor: pointer;
 }
 
@@ -140,18 +175,18 @@ body {
 #login-btn {
   width: 100%;
   max-width: 360px;
-  padding: 0.75rem;
-  background: var(--color-primary);
+  padding: var(--space-sm);
+  background: var(--color-danger);
   border: none;
-  border-radius: var(--radius);
-  color: #fff;
-  font-size: 1.1rem;
+  border-radius: var(--border-radius);
+  color: var(--color-text-white);
+  font-size: var(--font-size-lg);
   cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition);
 }
 #login-btn:hover:not(:disabled) {
   transform: scale(1.02);
-  box-shadow: 0 6px 20px rgba(231, 9, 9, 0.4);
+  box-shadow: var(--shadow-danger-lg);
 }
 #login-btn:disabled {
   opacity: 0.6;
@@ -160,10 +195,10 @@ body {
 
 /* 11. Enlaces */
 .links a {
-  color: var(--color-primary);
+  color: var(--color-danger);
   text-decoration: none;
   display: block;
-  margin-top: 1rem;
+  margin-top: var(--space-md);
 }
 .links a:hover {
   text-decoration: underline;
@@ -171,20 +206,20 @@ body {
 
 /* 12. Mensaje de error inline (si lo usas) */
 #error-message {
-  color: var(--color-primary);
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
+  color: var(--color-danger);
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
   display: none;
 }
 #error-message.show {
   display: block;
 }
 
-/* 13. Overlay de loading full‑screen */
+/* 13. Overlay de loading full-screen */
 #loadingOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--overlay-dark-80);
   display: none;
   justify-content: center;
   align-items: center;
@@ -197,8 +232,8 @@ body {
 .spinner {
   width: 60px;
   height: 60px;
-  border: 8px solid rgba(255, 255, 255, 0.3);
-  border-top-color: var(--color-primary);
+  border: 8px solid var(--overlay-white-30);
+  border-top-color: var(--color-danger);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -227,14 +262,14 @@ input::-webkit-search-results-decoration {
 }
 .login-icon {
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 .login-icon img {
   width: 4rem;
   height: auto;
   display: inline-block;
-  background: rgba(255,255,255,0.2);
-  padding: 0.5rem;
+  background: var(--overlay-white-20);
+  padding: var(--space-xs);
   border-radius: 50%;
 }
 

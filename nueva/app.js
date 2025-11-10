@@ -1,4 +1,19 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // Detectar si está en modo embedded (iframe)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isEmbedded = urlParams.get('embedded') === 'true';
+    
+    if (isEmbedded) {
+        console.log('🔗 Aplicación cargada en modo embedded (iframe)');
+        // Opcional: Ajustar estilos para modo iframe
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        
+        // IMPORTANTE: En modo embedded, ocultar la vista de auth inmediatamente
+        document.getElementById('auth-view').classList.add('hidden');
+        document.getElementById('app-view').classList.remove('hidden');
+    }
+
     // PWA Service Worker Registration
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
@@ -9,11 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Firebase Initialization
-    if (typeof firebase === 'undefined' || typeof firebaseConfig === 'undefined') {
-        alert("Error crítico: La configuración de Firebase no está disponible.");
-        return;
-    }
-    firebase.initializeApp(firebaseConfig);
+    // Firebase ya está inicializado en firebase-config.js
     const db = firebase.firestore();
     const auth = firebase.auth();
 
@@ -24,104 +35,167 @@ document.addEventListener("DOMContentLoaded", () => {
     const VIGILANCIA_CATEGORY = 'Valores Agregados Vigilancia';
     const TECNOLOGIA_CATEGORY = 'Valores Agregados con Tecnología';
     
-    const availableOfferings = [
-        { name: 'Plan de Responsabilidad Social Mineria', category: VIGILANCIA_CATEGORY },
-        { name: 'Escuela de Seguridad Liderman', category: VIGILANCIA_CATEGORY },
-        { name: 'Capacitaciones Especificas', category: VIGILANCIA_CATEGORY },
-        { name: 'Charlas de seguridad del personal', category: VIGILANCIA_CATEGORY },
-        { name: 'Estudio de seguridad con optimización de tecnología', category: VIGILANCIA_CATEGORY },
-        { name: 'Reportes con Power BI', category: VIGILANCIA_CATEGORY },
-        { name: 'Estudio de Seguridad Fisica', category: VIGILANCIA_CATEGORY },
-        { name: 'Asistente Administrativo', category: VIGILANCIA_CATEGORY },
-        { name: 'Supervisión área con dron', category: VIGILANCIA_CATEGORY },
-        { name: 'Administrador de contrato', category: VIGILANCIA_CATEGORY },
-        { name: 'Celebración de festividades', category: VIGILANCIA_CATEGORY },
-        { name: 'Equipos de computo', category: VIGILANCIA_CATEGORY },
-        { name: 'Detector de metales', category: VIGILANCIA_CATEGORY },
-        { name: 'Linternas', category: VIGILANCIA_CATEGORY },
-        { name: 'Vara Luminosa', category: VIGILANCIA_CATEGORY },
-        { name: 'Equipo celular', category: VIGILANCIA_CATEGORY },
-        { name: 'bidones de agua de 20 L', category: VIGILANCIA_CATEGORY },
-        { name: 'Presentación de indicadores de gestión (kpi)', category: VIGILANCIA_CATEGORY },
-        { name: 'Reunión mensual para revisión de kpi', category: VIGILANCIA_CATEGORY },
-        { name: 'SSEE 12 horas', category: VIGILANCIA_CATEGORY },
-        { name: 'SSEE 08 horas', category: VIGILANCIA_CATEGORY },
-        { name: 'Radios', category: VIGILANCIA_CATEGORY },
-        { name: 'Política de Procedimientos de Seguridad acorde a ISO 18788', category: VIGILANCIA_CATEGORY },
-        { name: 'Política de Inclusión y diversidad', category: VIGILANCIA_CATEGORY },
-        { name: 'Capacitaciones de refuerzo para personal Liderman (ESL)', category: VIGILANCIA_CATEGORY },
-        { name: 'Charlas de seguridad dirigida a EL CLIENTE (presencial)', category: VIGILANCIA_CATEGORY },
-        { name: 'Charlas de seguridad dirigida a EL CLIENTE (virtual)', category: VIGILANCIA_CATEGORY },
-        { name: 'Correo de cierre de informe semanal', category: VIGILANCIA_CATEGORY },
-        { name: 'Informe mensual', category: VIGILANCIA_CATEGORY },
-        { name: 'Informe semanal', category: VIGILANCIA_CATEGORY },
-        { name: 'Levantamiento de Kardex', category: VIGILANCIA_CATEGORY },
-        { name: 'Muestreo de conteos', category: VIGILANCIA_CATEGORY },
-        { name: 'Plan tecnológico del servicio', category: VIGILANCIA_CATEGORY },
-        { name: 'Política de Procedimientos de Seguridad acorde a ISO 18788', category: VIGILANCIA_CATEGORY },
-        { name: 'Política de Inclusión y diversidad', category: VIGILANCIA_CATEGORY },
-        { name: 'Capacitaciones de refuerzo para personal Liderman (ESL)', category: VIGILANCIA_CATEGORY },
-        { name: 'Presentación de staff', category: VIGILANCIA_CATEGORY },
-        { name: 'Proceso de auditoría', category: VIGILANCIA_CATEGORY },
-        { name: 'Proyecto de mejora continua', category: VIGILANCIA_CATEGORY },
-        { name: 'Requerimiento de mejoras', category: VIGILANCIA_CATEGORY },
-        { name: 'Reporte de novedades', category: VIGILANCIA_CATEGORY },
-        { name: 'Reuniones de avance', category: VIGILANCIA_CATEGORY },
-        { name: 'Revisión de procedimientos', category: VIGILANCIA_CATEGORY },
-        { name: 'Soporte técnico remoto', category: VIGILANCIA_CATEGORY },
-        { name: 'Visitas técnicas', category: VIGILANCIA_CATEGORY },
-        { name: 'Reportes con Power BI', category: VIGILANCIA_CATEGORY },
-        { name: 'Auditor de riesgos', category: VIGILANCIA_CATEGORY },
-        { name: 'Análisis de riesgo', category: VIGILANCIA_CATEGORY },
-        { name: 'Análisis delictivo', category: VIGILANCIA_CATEGORY },
-        { name: 'Patrullaje motorizado', category: VIGILANCIA_CATEGORY },
-        { name: 'Patrullaje canino', category: VIGILANCIA_CATEGORY },
-        { name: 'Asistente Administrativo', category: VIGILANCIA_CATEGORY },
-        { name: 'Supervisor área con dron', category: VIGILANCIA_CATEGORY },
-        { name: 'Administrador de contrato', category: VIGILANCIA_CATEGORY },
-        { name: 'Backup de personal', category: VIGILANCIA_CATEGORY },
-        { name: 'Campañas de primescia', category: VIGILANCIA_CATEGORY },
-        { name: 'Charlas de seguridad', category: VIGILANCIA_CATEGORY },
-        { name: 'Celebración de festividades', category: VIGILANCIA_CATEGORY },
-        { name: 'Equipos de computo', category: VIGILANCIA_CATEGORY },
-        { name: 'Herramientas', category: VIGILANCIA_CATEGORY },
-        { name: 'Linternas', category: VIGILANCIA_CATEGORY },
-        { name: 'Radios', category: VIGILANCIA_CATEGORY },
-        { name: 'Reportes', category: VIGILANCIA_CATEGORY },
-        { name: 'Responsabilidad Social', category: VIGILANCIA_CATEGORY },
-        { name: 'Señaléticas', category: VIGILANCIA_CATEGORY },
-        { name: 'Uniformes', category: VIGILANCIA_CATEGORY },
-        { name: 'Implementación de cámaras de seguridad', category: VIGILANCIA_CATEGORY },
-        { name: 'Implementación de Alarmas y sensores', category: TECNOLOGIA_CATEGORY },
-        { name: 'Monitoreo de Alarmas', category: TECNOLOGIA_CATEGORY },
-        { name: 'Charlas de seguridad para el personal', category: VIGILANCIA_CATEGORY },
-        { name: 'Capacitación de STT', category: VIGILANCIA_CATEGORY },
-        { name: 'Capacitación de Sistema detección contra incendios', category: VIGILANCIA_CATEGORY },
-        { name: 'Baño químico', category: VIGILANCIA_CATEGORY },
-        { name: 'Sombrilla mas módulos', category: VIGILANCIA_CATEGORY },
-        { name: 'Determinación de cargas', category: VIGILANCIA_CATEGORY },
-        { name: 'Análisis de riegos', category: VIGILANCIA_CATEGORY },
-        { name: 'Estudio de rutas de patrullaje', category: VIGILANCIA_CATEGORY },
-        { name: 'Controles proactivos', category: VIGILANCIA_CATEGORY },
-        { name: 'Información de inteligencia', category: VIGILANCIA_CATEGORY },
-        { name: 'Software Geo crimen', category: TECNOLOGIA_CATEGORY },
-        { name: 'Auditoría Interna', category: VIGILANCIA_CATEGORY },
-        { name: 'Reporte de Criminalidad', category: VIGILANCIA_CATEGORY },
-        { name: 'SmartPanics', category: TECNOLOGIA_CATEGORY },
-        { name: 'LiderControl', category: TECNOLOGIA_CATEGORY },
-        { name: 'Integración de plataformas GPS', category: TECNOLOGIA_CATEGORY },
-        { name: 'Voice Bot IA de Control de Asistencia', category: TECNOLOGIA_CATEGORY },
-        { name: 'Voice Bot IA de Control Operativo Nocturno/Diurno', category: TECNOLOGIA_CATEGORY },
-        { name: 'Estudio de seguridad (Evaluacion Integra de Optimizacion con Tecnologia)', category: TECNOLOGIA_CATEGORY },
-        { name: 'Pulsadores de pánico', category: TECNOLOGIA_CATEGORY },
-        { name: 'Configuración de analítica sobre CCTV Existentes', category: TECNOLOGIA_CATEGORY },
-        { name: 'Software de Control de Riesgos (Total  Risk)', category: TECNOLOGIA_CATEGORY },
-        { name: 'Software de Seguridad Colaborativa (Centros Educativos y Universidades)', category: TECNOLOGIA_CATEGORY },
-        { name: 'Ciberseguridad', category: TECNOLOGIA_CATEGORY }
-    ];
+    // Catálogo dinámico desde Firestore
+    const CATALOG = { vigilancia: [], tecnologia: [] };
+    let catalogLoaded = false;
+
+    // Función para cargar desplegables desde Firestore (igual que en dashboard.js)
+    async function loadOfferingsFromFirestore() {
+        console.log('🔄 Cargando desplegables desde Firestore...');
+        try {
+            // Intentar ruta 1: DESPEGABLES/VIGILANCIA y DESPEGABLES/TECNOLOGIA
+            const vigilanciaSnap = await db.collection('DESPEGABLES').doc('VIGILANCIA').get();
+            const tecnologiaSnap = await db.collection('DESPEGABLES').doc('TECNOLOGIA').get();
+            
+            // Procesar datos de Vigilancia
+            if (vigilanciaSnap.exists) {
+                const vigData = vigilanciaSnap.data();
+                console.log('📍 Datos VIGILANCIA:', vigData);
+                
+                // Si tiene propiedad offerings como array
+                if (Array.isArray(vigData.offerings)) {
+                    CATALOG.vigilancia = vigData.offerings.map(o => ({ 
+                        name: typeof o === 'string' ? o : o.name || o, 
+                        category: VIGILANCIA_CATEGORY 
+                    }));
+                } 
+                // Si es un objeto con propiedades numeradas (1:, 2:, etc.)
+                else {
+                    const items = [];
+                    for (let key in vigData) {
+                        if (key !== 'offerings' && !key.startsWith('_')) {
+                            items.push(vigData[key]);
+                        }
+                    }
+                    CATALOG.vigilancia = items.map(o => ({ 
+                        name: typeof o === 'string' ? o : o.name || o, 
+                        category: VIGILANCIA_CATEGORY 
+                    }));
+                }
+                console.log('✅ Vigilancia cargada:', CATALOG.vigilancia.length, 'items');
+            }
+            
+            // Procesar datos de Tecnología
+            if (tecnologiaSnap.exists) {
+                const tecData = tecnologiaSnap.data();
+                console.log('📍 Datos TECNOLOGIA:', tecData);
+                
+                // Si tiene propiedad offerings como array
+                if (Array.isArray(tecData.offerings)) {
+                    CATALOG.tecnologia = tecData.offerings.map(o => ({ 
+                        name: typeof o === 'string' ? o : o.name || o, 
+                        category: TECNOLOGIA_CATEGORY 
+                    }));
+                }
+                // Si es un objeto con propiedades numeradas (1:, 2:, etc.)
+                else {
+                    const items = [];
+                    for (let key in tecData) {
+                        if (key !== 'offerings' && !key.startsWith('_')) {
+                            items.push(tecData[key]);
+                        }
+                    }
+                    CATALOG.tecnologia = items.map(o => ({ 
+                        name: typeof o === 'string' ? o : o.name || o, 
+                        category: TECNOLOGIA_CATEGORY 
+                    }));
+                }
+                console.log('✅ Tecnología cargada:', CATALOG.tecnologia.length, 'items');
+            }
+            
+            catalogLoaded = true;
+            return true;
+        } catch (error) {
+            console.error('❌ Error cargando desplegables:', error);
+            return false;
+        }
+    }
+
+    // Función para refrescar los selects cuando hay cambios
+    function watchDesplegablesRealtime() {
+        console.log('👁️ Monitoreando cambios en desplegables...');
+        db.collection('DESPEGABLES').doc('VIGILANCIA').onSnapshot(doc => {
+            if (doc.exists) {
+                const vigData = doc.data();
+                if (Array.isArray(vigData.offerings)) {
+                    CATALOG.vigilancia = vigData.offerings.map(o => ({ name: o, category: VIGILANCIA_CATEGORY }));
+                } else {
+                    const items = [];
+                    for (let key in vigData) {
+                        if (key !== 'offerings' && !key.startsWith('_')) {
+                            items.push(vigData[key]);
+                        }
+                    }
+                    CATALOG.vigilancia = items.map(o => ({ name: o, category: VIGILANCIA_CATEGORY }));
+                }
+                updateAvailableOfferings();
+                console.log('🔄 Vigilancia actualizada en tiempo real:', CATALOG.vigilancia.length);
+            }
+        });
+        
+        db.collection('DESPEGABLES').doc('TECNOLOGIA').onSnapshot(doc => {
+            if (doc.exists) {
+                const tecData = doc.data();
+                if (Array.isArray(tecData.offerings)) {
+                    CATALOG.tecnologia = tecData.offerings.map(o => ({ name: o, category: TECNOLOGIA_CATEGORY }));
+                } else {
+                    const items = [];
+                    for (let key in tecData) {
+                        if (key !== 'offerings' && !key.startsWith('_')) {
+                            items.push(tecData[key]);
+                        }
+                    }
+                    CATALOG.tecnologia = items.map(o => ({ name: o, category: TECNOLOGIA_CATEGORY }));
+                }
+                updateAvailableOfferings();
+                console.log('🔄 Tecnología actualizada en tiempo real:', CATALOG.tecnologia.length);
+            }
+        });
+    }
+
+    // Función para actualizar availableOfferings desde CATALOG
+    function updateAvailableOfferings() {
+        availableOfferings = [...CATALOG.vigilancia, ...CATALOG.tecnologia];
+        console.log('📊 availableOfferings actualizado:', availableOfferings.length, 'items');
+        refreshAllOfferingSelects();
+    }
+
+    // Función para refrescar todos los selects de ofrecimientos
+    function refreshAllOfferingSelects() {
+        console.log('🔄 Refrescando todos los selects...');
+        const selects = document.querySelectorAll('.offering-name');
+        selects.forEach(select => {
+            const category = select.closest('.offering-row')?.querySelector('.offering-category')?.value;
+            if (!category) return;
+            
+            const currentValue = select.value;
+            const optionsForCategory = availableOfferings.filter(o => o.category === category);
+            
+            // Limpiar opciones existentes (excepto la primera que dice "Seleccionar...")
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            // Agregar nuevas opciones
+            optionsForCategory.forEach(o => {
+                const option = document.createElement('option');
+                option.value = o.name;
+                option.textContent = o.name;
+                if (o.name === currentValue) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            
+            console.log(`  ✅ Select actualizado para ${category}: ${optionsForCategory.length} opciones`);
+        });
+    }
     
     // =================================================================================
     // --- MODULE: UI (Manejo de la Interfaz de Usuario) ---puebas
+
+    // Variable global para showAddOfferingModal (será asignada por el módulo UI)
+    let showAddOfferingModal = null;
 
     // =================================================================================
     const UI = (() => {
@@ -243,10 +317,13 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         const createOfferingRow = (category, offeringData = {}) => {
+            console.log('🔧 createOfferingRow llamada con:', category, 'availableOfferings:', availableOfferings.length);
+            
             const wrapper = document.createElement('div');
             wrapper.className = 'offering-row p-3 bg-slate-800/50 rounded-lg space-y-3';
             
             const optionsForCategory = availableOfferings.filter(o => o.category === category);
+            console.log('📊 Opciones para', category + ':', optionsForCategory.length);
             
             const selectOptions = optionsForCategory.map(o => 
                 `<option value="${o.name}" ${o.name === offeringData.name ? 'selected' : ''}>${o.name}</option>`
@@ -255,7 +332,8 @@ document.addEventListener("DOMContentLoaded", () => {
             wrapper.innerHTML = `
                 <div class="flex justify-between items-center gap-3">
                     <select class="form-select-sm offering-name flex-grow"><option value="">Seleccionar...</option>${selectOptions}</select>
-                    <button type="button" class="remove-offering-row-btn flex-shrink-0"><i class="fas fa-trash-alt"></i></button>
+                    <button type="button" class="add-offering-option-btn flex-shrink-0 text-cyan-400 hover:text-cyan-300" title="Agregar nueva opción"><i class="fas fa-plus"></i></button>
+                    <button type="button" class="remove-offering-row-btn flex-shrink-0 text-red-400 hover:text-red-300" title="Eliminar fila"><i class="fas fa-trash-alt"></i></button>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <input type="number" placeholder="Cantidad" class="form-input-sm offering-quantity" min="1" step="1" value="${offeringData.quantity || 1}">
@@ -298,10 +376,132 @@ document.addEventListener("DOMContentLoaded", () => {
             wrapper.addEventListener('change', () => calculateTotal(wrapper));
             wrapper.querySelector('.remove-offering-row-btn').addEventListener('click', () => wrapper.remove());
             
+            // Event listener para el botón "+" agregar opción
+            wrapper.querySelector('.add-offering-option-btn')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🟢 Click en botón + agregar opción');
+                const selectEl = wrapper.querySelector('.offering-name');
+                showAddOfferingModal(category, selectEl);
+            });
+            
             return wrapper;
         };
 
-        return { elements, showLoading, showSuccessModal, showConfirmationModal, showDatePickerModal, getAuthErrorMessage, createOfferingRow, toggleButtonLoading };
+        // Función para mostrar modal de agregar opción
+        const showAddOfferingModal = (category, selectEl) => {
+            console.log('🔴 showAddOfferingModal llamada para:', category);
+            const title = category === VIGILANCIA_CATEGORY ? 'Vigilancia' : 'Tecnología';
+            
+            // Crear modal elegante
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm';
+            
+            modal.innerHTML = `
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-2xl max-w-md w-full mx-4 border border-slate-700">
+                    <!-- Header -->
+                    <div class="px-6 py-4 border-b border-slate-700 bg-gradient-to-r from-cyan-600 to-cyan-700">
+                        <h3 class="text-xl font-bold text-white">Nueva opción de ${title}</h3>
+                        <p class="text-cyan-100 text-sm mt-1">Ingresa el nombre de la nueva opción</p>
+                    </div>
+                    
+                    <!-- Body -->
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">
+                                Nombre de la opción
+                            </label>
+                            <input 
+                                type="text" 
+                                class="add-offering-input w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                                placeholder="Mínimo 3 caracteres"
+                                autofocus
+                            >
+                            <p class="add-offering-error text-red-400 text-sm mt-2 hidden"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="px-6 py-4 border-t border-slate-700 flex gap-3 justify-end">
+                        <button class="add-offering-cancel px-4 py-2 text-slate-400 hover:text-slate-300 rounded-lg hover:bg-slate-700/50 transition font-medium">
+                            Cancelar
+                        </button>
+                        <button class="add-offering-save px-6 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white rounded-lg transition font-medium shadow-lg hover:shadow-cyan-500/50">
+                            Guardar
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            const input = modal.querySelector('.add-offering-input');
+            const errorMsg = modal.querySelector('.add-offering-error');
+            const saveBtn = modal.querySelector('.add-offering-save');
+            const cancelBtn = modal.querySelector('.add-offering-cancel');
+            
+            const closeModal = () => {
+                modal.remove();
+            };
+            
+            const handleSave = () => {
+                const newOption = (input.value || '').trim();
+                
+                if (newOption.length < 3) {
+                    errorMsg.textContent = 'Mínimo 3 caracteres requeridos';
+                    errorMsg.classList.remove('hidden');
+                    input.focus();
+                    return;
+                }
+                
+                // Agregar a CATALOG
+                if (category === VIGILANCIA_CATEGORY) {
+                    CATALOG.vigilancia.push({ name: newOption, category });
+                } else {
+                    CATALOG.tecnologia.push({ name: newOption, category });
+                }
+                
+                // Actualizar availableOfferings
+                updateAvailableOfferings();
+                
+                // Agregar a Firestore
+                FirestoreService.addOfferingToFirestore(category, newOption).catch(e => {
+                    console.error('❌ Error al guardar en Firestore:', e);
+                    alert('Opción agregada localmente pero hubo error al sincronizar con Firestore');
+                });
+                
+                // Actualizar select
+                const option = document.createElement('option');
+                option.value = newOption;
+                option.textContent = newOption;
+                selectEl.appendChild(option);
+                selectEl.value = newOption;
+                
+                console.log('✅ Opción agregada:', newOption);
+                closeModal();
+            };
+            
+            // Event listeners
+            saveBtn.addEventListener('click', handleSave);
+            cancelBtn.addEventListener('click', closeModal);
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSave();
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeModal();
+            });
+            
+            // Cerrar al hacer click fuera del modal
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+            
+            input.focus();
+        };
+
+        // Asignar a variable global
+        window.showAddOfferingModal = showAddOfferingModal;
+
+        return { elements, showLoading, showSuccessModal, showConfirmationModal, showDatePickerModal, getAuthErrorMessage, createOfferingRow, toggleButtonLoading, showAddOfferingModal };
     })();
 
     // =================================================================================
@@ -325,7 +525,63 @@ document.addEventListener("DOMContentLoaded", () => {
             const clientRef = db.collection("users").doc(userId).collection("clients").doc(clientId);
             return clientRef.update({ clientStatus: "Ganado", implementationDate: implementationDate });
         };
-        return { getClients, addClient, getClient, updateClient, deleteClient, markClientAsWon };
+        
+        // Agregar nueva opción a despegables en Firestore
+        const addOfferingToFirestore = async (category, offeringName) => {
+            console.log('💾 Guardando opción en Firestore:', category, offeringName);
+            try {
+                const docId = category === VIGILANCIA_CATEGORY ? 'VIGILANCIA' : 'TECNOLOGIA';
+                const docRef = db.collection('DESPEGABLES').doc(docId);
+                
+                // Obtener documento actual
+                const docSnap = await docRef.get();
+                let docData = docSnap.exists ? docSnap.data() : {};
+                
+                // Verificar si ya existe la opción
+                let exists = false;
+                
+                // Si existe como propiedad offerings (array)
+                if (Array.isArray(docData.offerings)) {
+                    if (docData.offerings.includes(offeringName)) {
+                        exists = true;
+                    } else {
+                        docData.offerings.push(offeringName);
+                    }
+                } else {
+                    // Buscar en propiedades numeradas
+                    for (let key in docData) {
+                        if (docData[key] === offeringName) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!exists) {
+                        // Encontrar el siguiente número disponible
+                        let maxNum = 0;
+                        for (let key in docData) {
+                            if (!isNaN(key)) {
+                                maxNum = Math.max(maxNum, parseInt(key));
+                            }
+                        }
+                        const nextNum = maxNum + 1;
+                        docData[nextNum] = offeringName;
+                    }
+                }
+                
+                if (!exists) {
+                    await docRef.set(docData, { merge: true });
+                    console.log('✅ Opción guardada en Firestore');
+                } else {
+                    console.log('⚠️ La opción ya existe');
+                }
+            } catch (error) {
+                console.error('❌ Error guardando opción:', error);
+                throw error;
+            }
+        };
+        
+        return { getClients, addClient, getClient, updateClient, deleteClient, markClientAsWon, addOfferingToFirestore };
     })();
 
     // =================================================================================
@@ -388,15 +644,35 @@ document.addEventListener("DOMContentLoaded", () => {
         const handleAuthStateChange = (user) => {
             if (user) {
                 currentUserId = user.uid;
+                
+                // Cargar desplegables cuando el usuario inicia sesión
+                console.log('🔄 Cargando desplegables al iniciar sesión...');
+                loadOfferingsFromFirestore().then(() => {
+                    updateAvailableOfferings();
+                    watchDesplegablesRealtime();
+                    console.log('✅ Desplegables cargados correctamente');
+                }).catch(e => {
+                    console.error('❌ Error cargando desplegables:', e);
+                });
+                
                 elements.authView.classList.add("hidden");
                 elements.appView.classList.remove("hidden");
                 displayUserName(user);
-                App.showView('home');
-                App.initializeForms();
+                
+                // Esperar a que App esté listo
+                setTimeout(() => {
+                    if (typeof App !== 'undefined' && App.showView) {
+                        App.showView('home');
+                        App.initializeForms();
+                    }
+                }, 100);
             } else {
                 currentUserId = null;
-                elements.authView.classList.remove("hidden");
-                elements.appView.classList.add("hidden");
+                // Si está en embedded, NO mostrar la pantalla de login
+                if (!isEmbedded) {
+                    elements.authView.classList.remove("hidden");
+                    elements.appView.classList.add("hidden");
+                }
                 if (clientsListener) clientsListener();
             }
         };
@@ -756,5 +1032,31 @@ document.addEventListener("DOMContentLoaded", () => {
     })();
 
     App.init();
+    
+    // Si está en modo embedded, inicializar la app directamente sin esperar auth
+    if (isEmbedded) {
+        setTimeout(() => {
+            console.log('✅ Inicializando modo embedded...');
+            
+            // Cargar desplegables
+            loadOfferingsFromFirestore().then(() => {
+                updateAvailableOfferings();
+                watchDesplegablesRealtime();
+                console.log('✅ Desplegables cargados en modo embedded');
+            }).catch(e => {
+                console.error('❌ Error cargando desplegables en embedded:', e);
+            });
+            
+            // Mostrar la app
+            App.showView('home');
+            App.initializeForms();
+            
+            // Obtener nombre del usuario del localStorage o mostrar genérico
+            const userEmail = localStorage.getItem('userEmail') || 'Usuario';
+            document.getElementById('user-info').textContent = userEmail;
+            
+            console.log('✅ Aplicación lista en modo embedded');
+        }, 200);
+    }
 });
 

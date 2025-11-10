@@ -23,9 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const VIGILANCIA_CATEGORY = 'Valores Agregados Vigilancia';
   const TECNOLOGIA_CATEGORY = 'Valores Agregados con Tecnología';
 
-  // Catálogo (idéntico a comercial.js): se llena en runtime desde rutas permitidas por tus reglas
-  const CATALOG = { vigilancia: [], tecnologia: [] };
-  let catalogLoaded = false;
+  // === Catálogo dinámico desde DESPEGABLES (sincronizado con Nueva App) ===
+  let vigNames = [];
+  let tecNames = [];
 
   // ================ 2) HELPERS ================
   async function getUserName(email) {
@@ -39,77 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return userNameCache[email];
   }
 
-  // --- Lectura de catálogo (3 rutas compatibles con tus reglas) ---
-  async function fetchCatalogPrimary() {
-    // Opción 1: catalogos/servicios { vigilancia:[], tecnologia:[] }
-    const doc = await db.collection('catalogos').doc('servicios').get();
-    if (doc.exists) {
-      const d = doc.data() || {};
-      const vig = Array.isArray(d.vigilancia) ? d.vigilancia : [];
-      const tec = Array.isArray(d.tecnologia) ? d.tecnologia : [];
-      if (vig.length || tec.length) {
-        return {
-          vigilancia: [...new Set(vig.map(s => String(s).trim()))].sort(),
-          tecnologia: [...new Set(tec.map(s => String(s).trim()))].sort(),
-        };
-      }
-    }
-    return null;
-  }
-  async function fetchCatalogAltDocs() {
-    // Opción 2: catalogo_servicios/vigilancia {items:[]}, catalogo_servicios/tecnologia {items:[]}
-    const vDoc = await db.collection('catalogo_servicios').doc('vigilancia').get();
-    const tDoc = await db.collection('catalogo_servicios').doc('tecnologia').get();
-    const out  = { vigilancia: [], tecnologia: [] };
-    if (vDoc.exists && Array.isArray(vDoc.data().items)) out.vigilancia = vDoc.data().items;
-    if (tDoc.exists && Array.isArray(tDoc.data().items)) out.tecnologia = tDoc.data().items;
-    if (out.vigilancia.length || out.tecnologia.length) {
-      return {
-        vigilancia: [...new Set(out.vigilancia.map(s => String(s).trim()))].sort(),
-        tecnologia: [...new Set(out.tecnologia.map(s => String(s).trim()))].sort(),
-      };
-    }
-    return null;
-  }
-  async function fetchCatalogAltSubcollections() {
-    // Opción 3: catalogos/vigilancia/items/* y catalogos/tecnologia/items/*
-    const readSub = async (kind) => {
-      const snap = await db.collection('catalogos').doc(kind).collection('items').get();
-      return snap.docs.map(d => {
-        const x = d.data() || {};
-        // intentamos name/label/nombre por si cambia el campo
-        return (x.name || x.label || x.nombre || '').toString().trim();
-      }).filter(Boolean);
-    };
-    const v = await readSub('vigilancia').catch(() => []);
-    const t = await readSub('tecnologia').catch(() => []);
-    if (v.length || t.length) {
-      return {
-        vigilancia: [...new Set(v)].sort(),
-        tecnologia: [...new Set(t)].sort(),
-      };
-    }
-    return null;
-  }
+  // --- Funciones compartidas desde shared-utils.js ---
+  // - parseDesplegableDoc()
+  // - loadOfferingsFromFirestore()
+  // - watchDesplegablesRealtime()
+  // - getUserName()
+  // - addOptionToFirestore()
 
-  async function ensureCatalogLoaded() {
-    if (catalogLoaded) return CATALOG;
-    try {
-      const p = await fetchCatalogPrimary();
-      const a = p || await fetchCatalogAltDocs() || await fetchCatalogAltSubcollections();
-      if (a) {
-        CATALOG.vigilancia = a.vigilancia;
-        CATALOG.tecnologia = a.tecnologia;
-      } else {
-        console.warn('Catálogo vacío: no se encontró en ninguna ruta permitida.');
-      }
-    } catch (e) {
-      console.warn('No se pudo leer el catálogo desde Firebase:', e);
-    } finally {
-      catalogLoaded = true; // evitamos reintentos infinitos
-    }
-    return CATALOG;
-  }
 
   // ========================= 3) ELEMENTOS DEL DOM =========================
   const loadingOverlay = document.getElementById('dashboardLoadingOverlay');
@@ -132,7 +68,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (user) {
       const userName = sessionStorage.getItem('userName');
       document.getElementById('user-fullname').textContent = userName || user.email;
-      await ensureCatalogLoaded(); // <— importante para que salgan los selects
+      
+      // Cargar desplegables usando shared-utils.js
+      const operativoState = { vigNames, tecNames };
+      
+      await loadOfferingsFromFirestore({
+        state: operativoState,
+        onSuccess: () => {
+          vigNames = operativoState.vigNames;
+          tecNames = operativoState.tecNames;
+          console.log('✅ Desplegables cargados en operativo.js');
+        }
+      });
+      
+      watchDesplegablesRealtime({
+        state: operativoState,
+        onUpdate: () => {
+          vigNames = operativoState.vigNames;
+          tecNames = operativoState.tecNames;
+          console.log('🔄 Desplegables actualizados en tiempo real');
+        }
+      });
+      
       showSection('inicio');
     } else {
       window.location.replace('index.html');
@@ -600,8 +557,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = snap.data() || {};
       const currentOfferings = Array.isArray(data.offerings) ? data.offerings : [];
 
-      const setV = new Set(CATALOG.vigilancia);
-      const setT = new Set(CATALOG.tecnologia);
+      const setV = new Set(vigNames);
+      const setT = new Set(tecNames);
 
       currentOfferings.forEach(o => {
         let category = o.category || (setV.has(o.name) ? VIGILANCIA_CATEGORY : (setT.has(o.name) ? TECNOLOGIA_CATEGORY : VIGILANCIA_CATEGORY));
@@ -678,7 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const wrapper = document.createElement('div');
     wrapper.className = 'offering-row';
 
-    const options = category === VIGILANCIA_CATEGORY ? CATALOG.vigilancia : CATALOG.tecnologia;
+    const options = category === VIGILANCIA_CATEGORY ? vigNames : tecNames;
     // Si el doc trae un name que no está en el catálogo, igual se muestra
     const names = [...new Set([...(options || []), offeringData.name].filter(Boolean))];
 

@@ -25,15 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!loginForm) return;
 
-  // --- INICIALIZACIÓN DE FIREBASE ---
-  if (typeof firebase !== 'undefined' && typeof firebaseConfig !== 'undefined') {
-    firebase.initializeApp(firebaseConfig);
-  } else {
-    console.error("Firebase o su configuración no están disponibles.");
-    errorMessageDiv.textContent = "Error crítico de configuración. Contacte al administrador.";
-    errorMessageDiv.style.display = 'block';
-    return;
-  }
+  // Firebase ya está inicializado en firebase-config.js
   const auth = firebase.auth();
   const db = firebase.firestore();
 
@@ -63,6 +55,8 @@ document.addEventListener("DOMContentLoaded", () => {
       await firebase.auth().signInWithEmailAndPassword(email, password);
       try{ const rememberCb = document.getElementById('remember'); if(rememberCb && rememberCb.checked){ localStorage.setItem('rememberEmail', email); } else { localStorage.removeItem('rememberEmail'); } }catch(_){}
       
+      // Guardar email para acceso en iframes embebidos
+      localStorage.setItem('userEmail', email);
       // --- VERIFICACIÓN DE ROL ACTUALIZADA ---
       
       // 2. Extraer nombre de usuario y buscar en la colección 'usuarios'

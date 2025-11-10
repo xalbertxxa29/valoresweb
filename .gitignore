@@ -1,0 +1,44 @@
+# Environment Variables - NUNCA hacer commit
+.env
+.env.local
+.env.*.local
+.env.production
+config.js
+
+# Build output
+dist/
+
+# Node/npm
+node_modules/
+package-lock.json
+npm-debug.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# System files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Firebase
+firebase-debug.log
+firebase-service-account.json
+*.json.key
+
+# OS specific
+$RECYCLE.BIN/
+ehthumbs.db

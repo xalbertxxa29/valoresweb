@@ -1,0 +1,190 @@
+/**
+ * VARIABLES CSS GLOBALES
+ * =====================
+ * Sistema de variables centralizado para toda la aplicación
+ * Esto permite consistencia visual y fácil mantenimiento
+ */
+
+:root {
+  /* ============================================
+     COLORES - PALETA PRINCIPAL
+     ============================================ */
+  
+  /* Colores Primarios */
+  --color-primary: #1a3a6b;
+  --color-primary-light: #1f427a;
+  --color-primary-dark: #0f1f3a;
+  
+  /* Colores de Acento */
+  --color-accent: #00a896;
+  --color-accent-cyan: #0094c8;
+  --color-accent-light: rgba(0, 168, 150, 0.1);
+  --color-accent-border: rgba(0, 168, 150, 0.2);
+  
+  /* Colores de Estado */
+  --color-danger: #e70909;
+  --color-danger-light: #ff6b6b;
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
+  --color-info: #3b82f6;
+  
+  /* Colores de Fondo */
+  --color-bg-light: #f4f7f6;
+  --color-bg-white: #ffffff;
+  --color-bg-dark: #1a1a2e;
+  --color-bg-darker: #0f1f3a;
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+  
+  /* Colores de Texto */
+  --color-text-primary: #33374d;
+  --color-text-secondary: #6c757d;
+  --color-text-light: #f1f5f9;
+  --color-text-white: #ffffff;
+  
+  /* ============================================
+     ESPACIADO - ESCALA MODULAR
+     ============================================ */
+  
+  --space-xs: 0.5rem;    /* 8px */
+  --space-sm: 0.75rem;   /* 12px */
+  --space-md: 1.25rem;   /* 20px */
+  --space-lg: 2rem;      /* 32px */
+  --space-xl: 3rem;      /* 48px */
+  
+  /* ============================================
+     TIPOGRAFÍA
+     ============================================ */
+  
+  --font-family: 'Poppins', 'Arial', sans-serif;
+  --font-mono: 'Monaco', 'Courier New', monospace;
+  
+  --font-size-xs: 0.75rem;   /* 12px */
+  --font-size-sm: 0.875rem;  /* 14px */
+  --font-size-base: 1rem;    /* 16px */
+  --font-size-lg: 1.125rem;  /* 18px */
+  --font-size-xl: 1.25rem;   /* 20px */
+  --font-size-2xl: 1.5rem;   /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  /* ============================================
+     BORDES Y ESQUINAS
+     ============================================ */
+  
+  --border-radius: 12px;
+  --border-radius-sm: 8px;
+  --border-radius-lg: 16px;
+  --border-radius-full: 9999px;
+  
+  --border-width: 1.5px;
+  --border-width-sm: 1px;
+  --border-width-lg: 2px;
+  
+  /* ============================================
+     SOMBRAS
+     ============================================ */
+  
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.3);
+  
+  /* Sombras con color de acento */
+  --shadow-accent-sm: 0 2px 8px rgba(0, 148, 200, 0.2);
+  --shadow-accent-md: 0 4px 15px rgba(0, 148, 200, 0.3);
+  --shadow-accent-lg: 0 10px 30px rgba(0, 148, 200, 0.4);
+  
+  /* Sombras con color de error/peligro */
+  --shadow-danger-sm: 0 2px 8px rgba(231, 9, 9, 0.2);
+  --shadow-danger-md: 0 4px 15px rgba(231, 9, 9, 0.3);
+  --shadow-danger-lg: 0 6px 20px rgba(231, 9, 9, 0.4);
+  
+  /* Overlay semitransparentes */
+  --overlay-dark-80: rgba(0, 0, 0, 0.8);
+  --overlay-white-20: rgba(255, 255, 255, 0.2);
+  --overlay-white-30: rgba(255, 255, 255, 0.3);
+  --overlay-danger-glow: rgba(231, 9, 9, 0.3);
+  
+  /* ============================================
+     TRANSICIONES
+     ============================================ */
+  
+  --transition-fast: 0.15s ease;
+  --transition: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  
+  --transition-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --transition-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --transition-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* ============================================
+     BREAKPOINTS - RESPONSIVE DESIGN
+     ============================================ */
+  
+  /* Usar en media queries: @media (max-width: var(--breakpoint-sm)) */
+  --breakpoint-xs: 0px;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1400px;
+  
+  /* ============================================
+     Z-INDEX - CAPAS ESTRATIFICADAS
+     ============================================ */
+  
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 900;
+  --z-modal: 1000;
+  --z-tooltip: 1100;
+  --z-notification: 1200;
+  
+  /* ============================================
+     MISC
+     ============================================ */
+  
+  --backdrop-blur: blur(3px);
+  --transform-scale-hover: 1.02;
+  --transform-scale-active: 0.98;
+}
+
+/* ============================================
+   MODO OSCURO (OPCIONAL)
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-light: #1a1a2e;
+    --color-bg-white: #252535;
+    --color-text-primary: #e0e0e0;
+    --color-text-secondary: #a0a0a0;
+  }
+}
+
+/* ============================================
+   PREFERENCIAS DE MOVIMIENTO
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0.01ms ease;
+    --transition: 0.01ms ease;
+    --transition-slow: 0.01ms ease;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

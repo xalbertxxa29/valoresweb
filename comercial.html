@@ -3,9 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard Comercial</title>
+  <meta name="color-scheme" content="light dark" />
+  <title>Dashboard Comercial - Liderman</title>
 
+  <!-- Variables CSS Globales -->
+  <link rel="stylesheet" href="variables.css" />
+  
   <link rel="stylesheet" href="dashboard.css" />
+  
+  <!-- Responsive Design -->
+  <link rel="stylesheet" href="responsive.css" />
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,31 +22,38 @@
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 </head>
 <body>
-  <!-- Logo fijo + botón hamburguesa -->
-  <img src="logo.png" alt="Logo de la Empresa" id="fixed-logo">
-  <button id="toggle-sidebar" aria-label="Abrir menú">☰</button>
+  <!-- Skip to main content link (accessibility) -->
+  <a href="#main-content" class="skip-to-main" tabindex="0">Ir al contenido principal</a>
+
+  <!-- Header con logo y menú -->
+  <header role="banner">
+    <img src="logo.png" alt="Liderman - Logo" id="fixed-logo" aria-hidden="false">
+    <button id="toggle-sidebar" aria-label="Abrir/cerrar menú de navegación" aria-expanded="false" aria-controls="sidebar">
+      <span aria-hidden="true">☰</span>
+    </button>
+  </header>
 
   <!-- Sidebar -->
-  <aside class="sidebar" aria-label="Barra lateral de navegación">
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Menú principal">
     <div class="welcome-message">
       <h2 id="welcome-title">Bienvenido</h2>
       <p id="user-fullname">Cargando...</p>
     </div>
     <hr class="sidebar-divider" />
-    <nav>
-      <ul>
-        <li><button class="menu-option active" data-section="inicio"><i class="fas fa-home"></i> <span>Inicio</span></button></li>
-        <li><button class="menu-option" data-section="pendientes"><i class="fas fa-clock"></i> <span>Solicitudes Pendientes</span></button></li>
-        <li><button class="menu-option" data-section="ganados"><i class="fas fa-trophy"></i> <span>Clientes Ganados</span></button></li>
-        <li><button class="menu-option" data-section="ejecucion"><i class="fas fa-cogs"></i> <span>En Proceso de Ejecución</span></button></li>
-        <li><button class="menu-option" data-section="registrar"><i class="fas fa-plus-circle"></i> <span>Registrar nueva solicitud</span></button></li>
+    <nav aria-label="Navegación de secciones">
+      <ul role="menubar">
+        <li role="presentation"><button class="menu-option active" data-section="inicio" role="menuitem" aria-selected="true"><i class="fas fa-home" aria-hidden="true"></i> <span>Inicio</span></button></li>
+        <li role="presentation"><button class="menu-option" data-section="pendientes" role="menuitem"><i class="fas fa-clock" aria-hidden="true"></i> <span>Solicitudes Pendientes</span></button></li>
+        <li role="presentation"><button class="menu-option" data-section="ganados" role="menuitem"><i class="fas fa-trophy" aria-hidden="true"></i> <span>Clientes Ganados</span></button></li>
+        <li role="presentation"><button class="menu-option" data-section="ejecucion" role="menuitem"><i class="fas fa-cogs" aria-hidden="true"></i> <span>En Proceso de Ejecución</span></button></li>
+        <li role="presentation"><button class="menu-option" data-section="registrar" role="menuitem"><i class="fas fa-plus-circle" aria-hidden="true"></i> <span>Registrar nueva solicitud</span></button></li>
       </ul>
     </nav>
-    <button id="logout-btn"><i class="fas fa-sign-out-alt"></i><span>Cerrar sesión</span></button>
+    <button id="logout-btn" aria-label="Cerrar sesión"><i class="fas fa-sign-out-alt" aria-hidden="true"></i><span>Cerrar sesión</span></button>
   </aside>
 
   <!-- Contenido -->
-  <main class="content" role="main">
+  <main class="content" id="main-content" role="main">
     <!-- Overlay de carga -->
     <div id="dashboardLoadingOverlay" style="position: absolute; inset: 0; background: rgba(244, 247, 246, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9998; backdrop-filter: blur(2px);">
       <div class="dashboard-spinner" aria-label="Cargando"></div>
@@ -294,18 +309,21 @@
     </div>
   </div>
 
-  <!-- SDKs Firebase -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
+
+  <!-- Utilidades compartidas (shared-utils.js) -->
+  <script src="shared-utils.js"></script>
 
   <!-- Utilidades -->
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
-  <!-- Lógica Comercial -->
+  <!-- Lógica del dashboard comercial -->
   <script src="comercial.js" defer></script>
 
   <!-- Helpers de compatibilidad mínimos -->
@@ -331,6 +349,19 @@
       const setDoc = (val) => { if (docMain) docMain.value = val; if (docCompat) docCompat.value = val; };
       window.__setWonDocPath = setDoc;
     })();
+  </script>
+
+  <!-- Service Worker Registration for PWA & Offline Support -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('nueva/service-worker.js')
+          .then(registration => {
+            console.log('✅ Service Worker registrado:', registration.scope);
+          })
+          .catch(error => console.log('❌ Error registrando Service Worker:', error));
+      });
+    }
   </script>
 </body>
 </html>

@@ -3,10 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard de Gestión</title>
+  <meta name="color-scheme" content="light dark" />
+  <title>Dashboard de Gestión - Liderman</title>
 
+  <!-- Variables CSS Globales -->
+  <link rel="stylesheet" href="variables.css" />
+  
   <!-- Estilos del dashboard -->
   <link rel="stylesheet" href="dashboard.css" />
+  
+  <!-- Responsive Design -->
+  <link rel="stylesheet" href="responsive.css" />
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
   <!-- Fuentes -->
@@ -17,31 +25,38 @@
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 </head>
 <body>
-  <!-- Logo fijo y botón de menú -->
-  <img src="logo.png" alt="Logo de la Empresa" id="fixed-logo">
-  <button id="toggle-sidebar" aria-label="Abrir menú">☰</button>
+  <!-- Skip to main content link (accessibility) -->
+  <a href="#main-content" class="skip-to-main" tabindex="0">Ir al contenido principal</a>
+
+  <!-- Header con logo y menú -->
+  <header role="banner">
+    <img src="logo.png" alt="Liderman - Logo" id="fixed-logo" aria-hidden="false">
+    <button id="toggle-sidebar" aria-label="Abrir/cerrar menú de navegación" aria-expanded="false" aria-controls="sidebar">
+      <span aria-hidden="true">☰</span>
+    </button>
+  </header>
 
   <!-- Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar" role="navigation" aria-label="Menú principal">
     <div class="welcome-message">
       <h2 id="welcome-title">Bienvenido</h2>
       <p id="user-fullname">Cargando...</p>
     </div>
     <hr class="sidebar-divider" />
-    <nav>
-      <ul>
-        <li><button class="menu-option active" data-section="inicio"><i class="fas fa-home"></i> <span>Inicio</span></button></li>
-        <li><button class="menu-option" data-section="pendientes"><i class="fas fa-clock"></i> <span>Solicitudes Pendientes</span></button></li>
-        <li><button class="menu-option" data-section="ganados"><i class="fas fa-trophy"></i> <span>Clientes Ganados</span></button></li>
-        <li><button class="menu-option" data-section="ejecucion"><i class="fas fa-cogs"></i> <span>En Proceso de Ejecución</span></button></li>
-        <li><button class="menu-option" data-section="registrar"><i class="fas fa-plus-circle"></i> <span>Registrar nueva solicitud</span></button></li>
+    <nav aria-label="Navegación de secciones">
+      <ul role="menubar">
+        <li role="presentation"><button class="menu-option active" data-section="inicio" role="menuitem" aria-selected="true"><i class="fas fa-home" aria-hidden="true"></i> <span>Inicio</span></button></li>
+        <li role="presentation"><button class="menu-option" data-section="pendientes" role="menuitem"><i class="fas fa-clock" aria-hidden="true"></i> <span>Solicitudes Pendientes</span></button></li>
+        <li role="presentation"><button class="menu-option" data-section="ganados" role="menuitem"><i class="fas fa-trophy" aria-hidden="true"></i> <span>Clientes Ganados</span></button></li>
+        <li role="presentation"><button class="menu-option" data-section="ejecucion" role="menuitem"><i class="fas fa-cogs" aria-hidden="true"></i> <span>En Proceso de Ejecución</span></button></li>
+        <li role="presentation"><button class="menu-option" data-section="registrar" role="menuitem"><i class="fas fa-plus-circle" aria-hidden="true"></i> <span>Registrar nueva solicitud</span></button></li>
       </ul>
     </nav>
-    <button id="logout-btn"><i class="fas fa-sign-out-alt"></i><span>Cerrar sesión</span></button>
+    <button id="logout-btn" aria-label="Cerrar sesión"><i class="fas fa-sign-out-alt" aria-hidden="true"></i><span>Cerrar sesión</span></button>
   </aside>
 
   <!-- Contenido principal -->
-  <main class="content">
+  <main class="content" id="main-content" role="main">
     <!-- Overlay de carga inicial (con spinner del CSS) -->
     <div id="dashboardLoadingOverlay" style="position: absolute; inset: 0; background: rgba(244, 247, 246, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9998; backdrop-filter: blur(2px);">
       <div class="dashboard-spinner"></div>
@@ -172,7 +187,16 @@
 
     <!-- REGISTRAR (iframe) -->
     <section id="registrar-section" class="dashboard-section">
-      <iframe id="registrar-iframe" src="nueva/nueva.html?embedded=true" style="width: 100%; height: 100%; border: none;"></iframe>
+      <div id="iframe-loading" style="text-align: center; padding: 2rem; color: #666;">
+        <div class="dashboard-spinner" style="margin: 0 auto 1rem;"></div>
+        <p>Cargando formulario de registro...</p>
+      </div>
+      <iframe id="registrar-iframe" 
+              src="nueva/nueva.html?embedded=true" 
+              style="width: 100%; height: 100%; border: none; display: none;"
+              onload="document.getElementById('iframe-loading').style.display='none'; this.style.display='block';"
+              onerror="document.getElementById('iframe-loading').innerHTML='<p style=color:red>❌ Error al cargar el formulario. Verifique que el archivo nueva/nueva.html existe.</p>'">
+      </iframe>
     </section>
   </main>
 
@@ -270,20 +294,27 @@
 
   <!-- NUEVO: Modal “Agregar opción” para despegables (usado por dashboard.js) -->
   <div id="add-option-modal" class="modal-overlay">
-    <div class="modal-container" style="max-width: 420px;">
+    <div class="modal-container" style="max-width: 450px;">
       <div class="modal-header">
-        <h2 id="add-option-title">Nueva opción</h2>
+        <div>
+          <h2 id="add-option-title">Nueva opción</h2>
+          <p>Agrega un nuevo elemento al desplegable</p>
+        </div>
         <button id="add-option-cancel-btn" class="modal-close-button" aria-label="Cerrar">&times;</button>
       </div>
       <div class="modal-body" style="grid-template-columns: 1fr;">
-        <p style="margin-bottom: .5rem; color: var(--text-secondary);">
-          Escribe el nombre del ítem que quieres agregar al despegable.
-        </p>
         <div class="modal-field-full">
-          <label for="new-option-input">Nombre del ítem</label>
-          <input id="new-option-input" type="text" class="modal-input" placeholder="Ej. Rondas de Video Inteligente">
+          <label for="new-option-input">Nombre del elemento</label>
+          <input 
+            id="new-option-input" 
+            type="text" 
+            class="modal-input" 
+            placeholder="Ej. Rondas de Video Inteligente"
+            minlength="3"
+            maxlength="100"
+          >
+          <small id="add-option-error" style="color: #ff6b6b; margin-top: .5rem; display: none;"></small>
         </div>
-        <small id="add-option-error" style="color: #ef4444; margin-top: .25rem;"></small>
       </div>
       <div class="modal-footer">
         <button id="add-option-cancel-btn-2" class="modal-button btn-modal-secondary">Cancelar</button>
@@ -298,6 +329,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
 
+  <!-- Utilidades compartidas (shared-utils.js) -->
+  <script src="shared-utils.js"></script>
+
   <!-- Utilidades -->
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -306,7 +340,20 @@
   <!-- Lógica del dashboard -->
   <script src="dashboard.js" defer></script>
 
-  <!-- Cerrar modal de “agregar opción” con cualquiera de los dos botones de cancelar -->
+  <!-- Service Worker Registration for PWA & Offline Support -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('nueva/service-worker.js')
+          .then(registration => {
+            console.log('✅ Service Worker registrado:', registration.scope);
+          })
+          .catch(error => console.log('❌ Error registrando Service Worker:', error));
+      });
+    }
+  </script>
+
+  <!-- Cerrar modal de "agregar opción" con cualquiera de los dos botones de cancelar -->
   <script>
     (function () {
       const overlay = document.getElementById('add-option-modal');
@@ -317,5 +364,7 @@
       btnCancel?.addEventListener('click', close);
     })();
   </script>
+</body>
+</html>
 </body>
 </html>
