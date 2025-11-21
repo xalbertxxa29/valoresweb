@@ -1,4 +1,14 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // --- ELEMENTOS DEL DOM ---
+  const loginForm = document.getElementById("login-form");
+  const loginBtn = document.getElementById("login-btn");
+  const loadingOverlay = document.getElementById("loadingOverlay");
+  const usernameInput = document.getElementById("username");
+  const passwordInput = document.getElementById("password");
+  const errorMessageDiv = document.getElementById("error-message");
+
+  if (!loginForm) return;
+
   // Prefill Remember Me
   try {
     const savedEmail = localStorage.getItem('rememberEmail');
@@ -14,16 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function announce(msg){
     if (live){ live.textContent = ""; setTimeout(()=> live.textContent = msg, 10); }
   }
-
-  // --- ELEMENTOS DEL DOM ---
-  const loginForm = document.getElementById("login-form");
-  const loginBtn = document.getElementById("login-btn");
-  const loadingOverlay = document.getElementById("loadingOverlay");
-  const usernameInput = document.getElementById("username");
-  const passwordInput = document.getElementById("password");
-  const errorMessageDiv = document.getElementById("error-message");
-
-  if (!loginForm) return;
 
   // Firebase ya está inicializado en firebase-config.js
   const auth = firebase.auth();
@@ -76,11 +76,14 @@ document.addEventListener("DOMContentLoaded", () => {
         // 3. Verificar el rol y redirigir a la página correspondiente
         if (userRole === 'SUPERVISOR GENERAL') {
           sessionStorage.setItem('userName', fullName);
+          sessionStorage.setItem('userZone', userData.ZONA || 'GENERAL'); // Guarda la zona para usarla en dashboard.html
           await writeAudit('login_success', { email });
           window.location.href = "dashboard.html";
         } else if (userRole === 'COMERCIAL') {
           sessionStorage.setItem('userName', fullName);
-          await writeAudit('login_success_comercial', { email });
+          const userZone = userData.ZONA || 'GENERAL'; // Obtiene la zona del usuario o usa GENERAL por defecto
+          sessionStorage.setItem('userZone', userZone); // Guarda la zona para usarla en comercial.html
+          await writeAudit('login_success_comercial', { email, zone: userZone });
           window.location.href = "comercial.html";
         } else if (userRole === 'OPERACIONES') {
           const userZone = userData.ZONA; // Obtiene la zona del usuario

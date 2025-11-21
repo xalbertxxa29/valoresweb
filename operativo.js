@@ -1,15 +1,58 @@
 // operativo.js — Operativo con Editor de Servicios y desplegables (Firebase + multipath catálogo)
+
+// SISTEMA DE MENSAJES MODAL (definido ANTES de DOMContentLoaded)
+function showMessage(message, type = 'info') {
+  const messageModal = document.createElement('div');
+  messageModal.className = 'modal-overlay visible';
+  messageModal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 3000;';
+  
+  const colors = {
+    'success': '#4caf50',
+    'error': '#f44336',
+    'warning': '#ff9800',
+    'info': '#2196f3'
+  };
+  
+  const color = colors[type] || colors['info'];
+  
+  messageModal.innerHTML = `
+    <div style="background: white; border-radius: 8px; padding: 24px; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); text-align: center;">
+      <div style="font-size: 24px; color: ${color}; margin-bottom: 12px;">
+        ${type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '⚠' : 'ℹ'}
+      </div>
+      <p style="color: #333; font-size: 16px; margin: 16px 0; line-height: 1.5;">${message}</p>
+      <button style="background: ${color}; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">Aceptar</button>
+    </div>
+  `;
+  
+  document.body.appendChild(messageModal);
+  
+  const closeBtn = messageModal.querySelector('button');
+  closeBtn.addEventListener('click', () => {
+    messageModal.remove();
+  });
+  
+  messageModal.addEventListener('click', (e) => {
+    if (e.target === messageModal) {
+      messageModal.remove();
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // 1) FIREBASE & CONSTANTES
   // =========================
   if (typeof firebase === 'undefined' || typeof firebaseConfig === 'undefined') {
-    alert("Error crítico de configuración. Revisa la consola."); return;
+    showMessage("Error crítico de configuración. Revisa la consola.", "error");
+    return;
   }
   if (!firebase.apps?.length) firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
-  const db   = firebase.firestore();
-  window.auth = auth; window.db = db;
+  // Usar db global de firebase-config.js en lugar de redeclararla
+  // const db   = firebase.firestore();
+  window.auth = auth; 
+  // window.db ya está definida en firebase-config.js
 
   let servicesChart = null;
 
@@ -46,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // - getUserName()
   // - addOptionToFirestore()
 
-
   // ========================= 3) ELEMENTOS DEL DOM =========================
   const loadingOverlay = document.getElementById('dashboardLoadingOverlay');
   const menuOptions = document.querySelectorAll('.menu-option');
@@ -64,22 +106,52 @@ document.addEventListener('DOMContentLoaded', () => {
   const editTecnologiaContainer = document.getElementById('edit-tecnologia-offerings-container');
 
   // ========================= 4) AUTENTICACIÓN =========================
+  
+  // Esperar a que shared-utils.js esté disponible
+  function waitForSharedUtils() {
+    return new Promise(resolve => {
+      const checkInterval = setInterval(() => {
+        if (typeof loadOfferingsFromFirestore !== 'undefined' && typeof watchDesplegablesRealtime !== 'undefined') {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 50);
+      // Timeout después de 5 segundos
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        console.warn('⚠️ shared-utils.js tardó demasiado en cargar');
+        resolve();
+      }, 5000);
+    });
+  }
+  
   auth.onAuthStateChanged(async user => {
     if (user) {
+      // Guardar el UID del usuario para consultas posteriores
+      window.currentUserId = user.uid;
+      console.log('👤 Usuario autenticado con UID:', user.uid);
+      
       const userName = sessionStorage.getItem('userName');
       document.getElementById('user-fullname').textContent = userName || user.email;
+      
+      // Esperar a que shared-utils esté disponible
+      await waitForSharedUtils();
       
       // Cargar desplegables usando shared-utils.js
       const operativoState = { vigNames, tecNames };
       
-      await loadOfferingsFromFirestore({
-        state: operativoState,
-        onSuccess: () => {
-          vigNames = operativoState.vigNames;
-          tecNames = operativoState.tecNames;
-          console.log('✅ Desplegables cargados en operativo.js');
-        }
-      });
+      try {
+        await loadOfferingsFromFirestore({
+          state: operativoState,
+          onSuccess: () => {
+            vigNames = operativoState.vigNames;
+            tecNames = operativoState.tecNames;
+            console.log('✅ Desplegables cargados en operativo.js');
+          }
+        });
+      } catch (error) {
+        console.error('❌ Error cargando desplegables:', error);
+      }
       
       watchDesplegablesRealtime({
         state: operativoState,
@@ -119,32 +191,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ========================= 6) DASHBOARD =========================
   async function loadDashboardData() {
-    loadingOverlay.style.display = 'flex';
+    const loadingOverlay = document.getElementById('dashboardLoadingOverlay');
+    if (loadingOverlay) loadingOverlay.style.display = 'flex';
+    const startTime = Date.now();
     try {
       const userZone = sessionStorage.getItem('userZone');
       if (!userZone) throw new Error("Zona de usuario no encontrada.");
-
-      const clientsSnapshot = await db.collectionGroup('clients').where('zone', '==', userZone).get();
+      
+      console.log('🔍 Buscando clientes ganados en zona:', userZone);
+      
+      // Usar collectionGroup para buscar en TODOS los clientes de TODOS los usuarios
+      const clientsSnapshot = await db.collectionGroup('clients')
+        .where('zone', '==', userZone)
+        .where('clientStatus', '==', 'Ganado')
+        .get();
+      
+      console.log(`✅ Total de clientes ganados encontrados en zona: ${clientsSnapshot.docs.length}`);
+      
       const clients = clientsSnapshot.docs.map(doc => doc.data());
-      const wonClients = clients.filter(c => c.clientStatus === CLIENT_STATUS.WON);
+      const wonClients = clients;
 
-      document.getElementById('won-count').textContent = wonClients.length;
-      document.getElementById('in-process-count').textContent =
-        wonClients.filter(c => c.execution?.overallStatus === 'in_process').length;
-
-      document.getElementById('expiring-count').textContent = wonClients.filter(c => {
+      const wonCountEl = document.getElementById('won-count');
+      const inProcessEl = document.getElementById('in-process-count');
+      const expiringEl = document.getElementById('expiring-count');
+      
+      if (wonCountEl) wonCountEl.textContent = wonClients.length;
+      if (inProcessEl) inProcessEl.textContent = wonClients.filter(c => c.execution?.overallStatus === 'in_process').length;
+      
+      const expiringCount = wonClients.filter(c => {
         const duration = c.offerings?.[0]?.frequency || 0;
         if (c.implementationDate && duration > 0) {
           return dayjs(c.implementationDate).add(duration, 'month').diff(dayjs(), 'month') <= 6;
         }
         return false;
       }).length;
+      
+      if (expiringEl) expiringEl.textContent = expiringCount;
 
       updateDashboardWidgets(wonClients);
+      console.log(`✅ Dashboard cargado en ${Date.now() - startTime}ms`);
     } catch (error) {
-      console.error("Error cargando datos del dashboard:", error);
+      console.error("❌ Error cargando datos del dashboard:", error);
+      // Mostrar valores por defecto con validación
+      const wonCountEl = document.getElementById('won-count');
+      const inProcessEl = document.getElementById('in-process-count');
+      const expiringEl = document.getElementById('expiring-count');
+      
+      if (wonCountEl) wonCountEl.textContent = '0';
+      if (inProcessEl) inProcessEl.textContent = '0';
+      if (expiringEl) expiringEl.textContent = '0';
     } finally {
-      loadingOverlay.style.display = 'none';
+      const loadingOverlay = document.getElementById('dashboardLoadingOverlay');
+      if (loadingOverlay) loadingOverlay.style.display = 'none';
     }
   }
 
@@ -178,18 +276,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const sortedUsers = Object.entries(userRanking).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    document.getElementById('user-ranking-list').innerHTML =
-      sortedUsers.map(([email, count]) => `<li><span class="user-info">${email.split('@')[0]}</span><strong class="user-rank">${count}</strong></li>`).join('')
-      || '<li>No hay datos en esta zona.</li>';
+    const userRankingList = document.getElementById('user-ranking-list');
+    if (userRankingList) {
+      userRankingList.innerHTML =
+        sortedUsers.map(([email, count]) => `<li><span class="user-info">${email.split('@')[0]}</span><strong class="user-rank">${count}</strong></li>`).join('')
+        || '<li>No hay datos en esta zona.</li>';
+    }
 
-    document.getElementById('va-count').textContent  = vaCount;
-    document.getElementById('vat-count').textContent = vatCount;
+    const vaCountEl = document.getElementById('va-count');
+    const vatCountEl = document.getElementById('vat-count');
+    
+    if (vaCountEl) vaCountEl.textContent = vaCount;
+    if (vatCountEl) vatCountEl.textContent = vatCount;
 
     renderExecutionChart(pendingExecCount, inProcessExecCount, executedCount);
   }
 
   function renderExecutionChart(pending, inProcess, executed) {
-    const ctx = document.getElementById('services-chart').getContext('2d');
+    const chartEl = document.getElementById('services-chart');
+    if (!chartEl) {
+      console.warn('⚠️ Elemento services-chart no encontrado');
+      return;
+    }
+    
+    const ctx = chartEl.getContext('2d');
     if (servicesChart) servicesChart.destroy();
     Chart.register(ChartDataLabels);
     servicesChart = new Chart(ctx, {
@@ -219,19 +329,40 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const userZone = sessionStorage.getItem('userZone');
       if (!userZone) throw new Error("Zona de usuario no encontrada.");
+      
+      // Usar collectionGroup solo con zona, después filtrar por status y ordenar en cliente
       let query = db.collectionGroup('clients')
-        .where('clientStatus', '==', status)
-        .where('zone', '==', userZone)
-        .orderBy('createdAt', 'desc')
-        .limit(PAGE_SIZE);
-      if (direction === 'initial') { state.lastDoc = null; state.pageHistory = [null]; }
-      const cursorDoc = direction === 'prev' ? state.pageHistory[state.pageHistory.length - 2] : state.lastDoc;
-      if (cursorDoc) query = query.startAfter(cursorDoc);
+        .where('zone', '==', userZone);
+      
       const snapshot = await query.get();
-      const docs = snapshot.docs;
-      if (direction === 'next' && docs.length > 0) { state.lastDoc = docs[docs.length - 1]; state.pageHistory.push(state.lastDoc); }
-      else if (direction === 'prev') { state.pageHistory.pop(); state.lastDoc = state.pageHistory[state.pageHistory.length - 1]; }
-      else if (direction === 'initial' && docs.length > 0) { state.lastDoc = docs[docs.length - 1]; state.pageHistory = [null, state.lastDoc]; }
+      
+      // Filtrar por status y ordenar en cliente (sin índice compuesto)
+      let docs = snapshot.docs
+        .filter(doc => doc.data().clientStatus === status)
+        .sort((a, b) => {
+          const aDate = a.data().createdAt?.toDate?.() || new Date(0);
+          const bDate = b.data().createdAt?.toDate?.() || new Date(0);
+          return bDate - aDate;
+        });
+      
+      // Aplicar paginación
+      if (direction === 'initial') { 
+        state.lastDoc = null; 
+        state.pageHistory = [null]; 
+      }
+      
+      const startIndex = 0;
+      const endIndex = direction === 'initial' ? PAGE_SIZE : 
+                       direction === 'next' ? docs.length : 
+                       Math.max(0, docs.length - PAGE_SIZE);
+      
+      docs = docs.slice(startIndex, direction === 'initial' || direction === 'next' ? PAGE_SIZE : docs.length);
+      
+      if (docs.length > 0) { 
+        state.lastDoc = docs[docs.length - 1]; 
+        if (direction === 'initial') state.pageHistory = [null, state.lastDoc];
+      }
+      
       await renderWonTable(docs);
       updatePaginationButtons(status, docs.length);
     } catch (error) {
@@ -309,36 +440,49 @@ document.addEventListener('DOMContentLoaded', () => {
   // ========================= 8) LISTA DE EJECUCIÓN =========================
   async function loadExecList() {
     const tbody = document.getElementById('exec-table-body');
+    if (!tbody) return;
+    
     tbody.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
     try {
       const userZone = sessionStorage.getItem('userZone');
       if (!userZone) throw new Error("Zona de usuario no encontrada.");
+      
+      console.log('🔍 Buscando clientes en ejecución de zona:', userZone);
+      
+      // Usar collectionGroup y filtrar por zona en cliente
       const snap = await db.collectionGroup('clients')
-        .where('clientStatus', '==', 'Ganado')
-        .where('execution.overallStatus', 'in', ['in_process', 'executed'])
         .where('zone', '==', userZone)
-        .orderBy('execution.updatedAt', 'desc')
         .get();
 
-      if (snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="7">No hay clientes en proceso de ejecución en su zona.</td></tr>'; return;
+      // Filtrar clientes que estén en ejecución
+      const execClients = snap.docs
+        .map(doc => ({ ...doc.data(), docPath: doc.ref.path }))
+        .filter(c => c.clientStatus === 'Ganado' && (c.execution?.overallStatus === 'in_process' || c.execution?.overallStatus === 'executed'))
+        .sort((a, b) => {
+          const aTime = a.execution?.updatedAt?.toDate?.() || new Date(0);
+          const bTime = b.execution?.updatedAt?.toDate?.() || new Date(0);
+          return bTime - aTime;
+        });
+
+      if (execClients.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">No hay clientes en proceso de ejecución en su zona.</td></tr>';
+        return;
       }
 
-      const rowsHtml = await Promise.all(snap.docs.map(async (doc) => {
-        const d = doc.data();
+      const rowsHtml = await Promise.all(execClients.map(async (d) => {
         const createdByFullName = await getUserName(d.creadoPor);
         const status = (d.execution?.overallStatus || 'pending');
         const statusLabels = { in_process: 'En Proceso', executed: 'Ejecutado' };
         const servicesCount = (d.offerings || []).length;
         const servicesHTML = `<div class="service-summary">
             <span class="service-count">${servicesCount} Servicio${servicesCount !== 1 ? 's' : ''}</span>
-            <a class="view-details-link" data-path="${doc.ref.path}"><i class="fas fa-list-ul"></i> Ver Detalles</a>
+            <a class="view-details-link" data-path="${d.docPath}"><i class="fas fa-list-ul"></i> Ver Detalles</a>
           </div>`;
         const actionsHTML = `
           <div class="action-icons-wrapper">
-            <i class="fas fa-cogs action-icon edit-services-btn" data-path="${doc.ref.path}" title="Editar Servicios"></i>
+            <i class="fas fa-cogs action-icon edit-services-btn" data-path="${d.docPath}" title="Editar Servicios"></i>
           </div>
-          <button class="btn-action btn-action-manage exec-open" data-path="${doc.ref.path}">
+          <button class="btn-action btn-action-manage exec-open" data-path="${d.docPath}">
             <i class="fas fa-tasks"></i> Gestionar
           </button>`;
         return `<tr>
@@ -504,7 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      if (!hasChanges) { alert("No se realizaron cambios."); return; }
+      if (!hasChanges) { showMessage("No se realizaron cambios.", "warning"); return; }
 
       const updatedOfferings = Array.from(statusMap.values());
       updatedOfferings.forEach(o => { if (o.status !== 'executed') allExecuted = false; });
@@ -521,13 +665,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (allExecuted && !data.stateDates?.executedAt)      updates['stateDates.executedAt'] = firebase.firestore.FieldValue.serverTimestamp();
 
       await clientRef.update(updates);
-      alert('Estados de ejecución actualizados con éxito.');
+      showMessage('Estados de ejecución actualizados con éxito.', 'success');
       closeModal(executionModalOverlay);
       loadExecList();
       loadTableData(CLIENT_STATUS.WON, 'initial');
     } catch (error) {
       console.error("Error al guardar ejecución:", error);
-      alert("No se pudieron guardar los cambios.");
+      showMessage("No se pudieron guardar los cambios.", "error");
     } finally {
       loadingOverlay.style.display = 'none';
       saveBtn.disabled = false;
@@ -570,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!editTecnologiaContainer.children.length) editTecnologiaContainer.appendChild(createOfferingRow(TECNOLOGIA_CATEGORY));
     } catch (e) {
       console.error('Error al abrir editor de servicios:', e);
-      alert('No se pudieron cargar los servicios.');
+      showMessage('No se pudieron cargar los servicios.', 'error');
       closeModal(servicesEditorModal);
     }
   }
@@ -615,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
       batch.update(clientRef, { offerings: newOfferings, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       batch.set(clientRef.collection('logs').doc(), logEntry);
       await batch.commit();
-      alert("Servicios actualizados con éxito.");
+      showMessage("Servicios actualizados con éxito.", "success");
       closeModal(servicesEditorModal);
 
       const active = document.querySelector('.menu-option.active')?.dataset.section;
@@ -624,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadDashboardData();
     } catch (e) {
       console.error("Error al guardar servicios:", e);
-      alert("No se pudieron guardar los cambios en los servicios.");
+      showMessage("No se pudieron guardar los cambios en los servicios.", "error");
     } finally {
       servicesEditorSaveBtn.disabled = false;
       servicesEditorSaveBtn.textContent = 'Guardar Cambios';

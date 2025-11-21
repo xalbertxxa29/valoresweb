@@ -1,15 +1,13 @@
-const CACHE_NAME = 'gestor-ofrecimientos-v8'; // Nueva versión para forzar la actualización
+const CACHE_NAME = 'gestor-ofrecimientos-v9'; // Nueva versión para forzar la actualización
 const URLS_TO_CACHE = [
-  '/',
-  'index.html',
-  'styles.css',
-  'app.js',
-  'firebase-config.js',
-  'manifest.json',
-  'icon-192x192.jpeg' // Nombre del archivo corregido
-,
-  'nueva.html',
-  'nueva.css'];
+  '/nueva/nueva.html',
+  '/nueva/nueva.css',
+  '/nueva/app.js',
+  '/nueva/offerings.js',
+  '/nueva/firebase-config.js',
+  '/nueva/manifest.json',
+  '/nueva/icon-192x192.jpeg'
+];
 
 // Instalar el Service Worker y guardar los archivos base en caché.
 self.addEventListener('install', event => {
@@ -18,7 +16,19 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       console.log('Service Worker: Cache abierto y guardando recursos base.');
-      return cache.addAll(URLS_TO_CACHE);
+      // Usar addAll con manejo de errores para archivos individuales
+      return Promise.allSettled(
+        URLS_TO_CACHE.map(url => cache.add(url))
+      ).then(results => {
+        const failed = results
+          .map((r, i) => r.status === 'rejected' ? URLS_TO_CACHE[i] : null)
+          .filter(Boolean);
+        if (failed.length > 0) {
+          console.warn('Service Worker: Algunos archivos no pudieron cachearse:', failed);
+        }
+      });
+    }).catch(err => {
+      console.error('Service Worker: Error abriendo caché:', err);
     })
   );
 });

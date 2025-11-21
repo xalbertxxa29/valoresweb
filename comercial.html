@@ -173,9 +173,10 @@
               <th scope="col">Servicios</th>
               <th scope="col">Registrado Por</th>
               <th scope="col">Estado General</th>
+              <th scope="col">Acciones</th>
             </tr>
           </thead>
-          <tbody id="exec-table-body"><tr><td colspan="6">Cargando...</td></tr></tbody>
+          <tbody id="exec-table-body"><tr><td colspan="7">Cargando...</td></tr></tbody>
         </table>
       </div>
     </section>
@@ -240,6 +241,10 @@
         <button id="execution-modal-close" class="modal-close-button" aria-label="Cerrar">&times;</button>
       </div>
       <div class="modal-body">
+        <div id="execution-date-picker-wrapper" style="margin-bottom: 20px; display: none;">
+          <label for="execution-date-input" style="display: block; margin-bottom: 8px; font-weight: 600;">Fecha de Ejecución:</label>
+          <input type="date" id="execution-date-input" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
         <div class="table-responsive">
           <table>
             <thead>
@@ -250,7 +255,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button id="execution-modal-save" class="modal-button btn-modal-primary">Guardar Cambios</button>
+        <button id="execution-modal-cancel" class="modal-button btn-modal-secondary">Cancelar</button>
+        <button id="execution-modal-save" class="modal-button btn-modal-primary">Aceptar y Guardar</button>
       </div>
     </div>
   </div>
@@ -315,13 +321,13 @@
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
 
-  <!-- Utilidades compartidas (shared-utils.js) -->
-  <script src="shared-utils.js"></script>
-
   <!-- Utilidades -->
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
+  <!-- Utilidades compartidas (shared-utils.js) - Después de Firebase -->
+  <script src="shared-utils.js"></script>
 
   <!-- Lógica del dashboard comercial -->
   <script src="comercial.js" defer></script>

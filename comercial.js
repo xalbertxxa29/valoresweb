@@ -1,22 +1,65 @@
 // operativo.js — Operativo con Editor de Servicios y desplegables (mismo flujo que Comercial)
+
+// SISTEMA DE MENSAJES MODAL (definido ANTES de DOMContentLoaded)
+function showMessage(message, type = 'info') {
+  const messageModal = document.createElement('div');
+  messageModal.className = 'modal-overlay visible';
+  messageModal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 3000;';
+  
+  const colors = {
+    'success': '#4caf50',
+    'error': '#f44336',
+    'warning': '#ff9800',
+    'info': '#2196f3'
+  };
+  
+  const color = colors[type] || colors['info'];
+  
+  messageModal.innerHTML = `
+    <div style="background: white; border-radius: 8px; padding: 24px; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); text-align: center;">
+      <div style="font-size: 24px; color: ${color}; margin-bottom: 12px;">
+        ${type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '⚠' : 'ℹ'}
+      </div>
+      <p style="color: #333; font-size: 16px; margin: 16px 0; line-height: 1.5;">${message}</p>
+      <button style="background: ${color}; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">Aceptar</button>
+    </div>
+  `;
+  
+  document.body.appendChild(messageModal);
+  
+  const closeBtn = messageModal.querySelector('button');
+  closeBtn.addEventListener('click', () => {
+    messageModal.remove();
+  });
+  
+  messageModal.addEventListener('click', (e) => {
+    if (e.target === messageModal) {
+      messageModal.remove();
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // 1) FIREBASE & CONSTANTES
   // =========================
   if (typeof firebase === 'undefined' || typeof firebaseConfig === 'undefined') {
-    alert("Error crítico de configuración. Revisa la consola.");
+    showMessage("Error crítico de configuración. Revisa la consola.", "error");
     return;
   }
   if (!firebase.apps?.length) firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
-  const db   = firebase.firestore();
-  window.auth = auth; window.db = db;
+  // Usar db global de firebase-config.js en lugar de redeclararla
+  // const db   = firebase.firestore();
+  window.auth = auth; 
+  // window.db ya está definida en firebase-config.js
 
   let servicesChart = null;
 
   const CLIENT_STATUS = { WON: 'Ganado' };
   const PAGE_SIZE = 10;
   const paginationState = {
+    'Ofrecido': { lastDoc: null, pageHistory: [null] },
     [CLIENT_STATUS.WON]: { lastDoc: null, pageHistory: [null] },
   };
 
@@ -84,22 +127,52 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // 4) AUTENTICACIÓN
   // =========================
+  
+  // Esperar a que shared-utils.js esté disponible
+  function waitForSharedUtils() {
+    return new Promise(resolve => {
+      const checkInterval = setInterval(() => {
+        if (typeof loadOfferingsFromFirestore !== 'undefined' && typeof watchDesplegablesRealtime !== 'undefined') {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 50);
+      // Timeout después de 5 segundos
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        console.warn('⚠️ shared-utils.js tardó demasiado en cargar');
+        resolve();
+      }, 5000);
+    });
+  }
+  
   auth.onAuthStateChanged(async user => {
     if (user) {
+      // Guardar el UID del usuario para consultas posteriores
+      window.currentUserId = user.uid;
+      console.log('👤 Usuario autenticado con UID:', user.uid);
+      
       const userName = sessionStorage.getItem('userName');
       document.getElementById('user-fullname').textContent = userName || user.email;
+      
+      // Esperar a que shared-utils esté disponible
+      await waitForSharedUtils();
       
       // Cargar desplegables usando shared-utils.js
       const comercialState = { vigNames, tecNames };
       
-      await loadOfferingsFromFirestore({
-        state: comercialState,
-        onSuccess: () => {
-          vigNames = comercialState.vigNames;
-          tecNames = comercialState.tecNames;
-          console.log('✅ Desplegables cargados en comercial.js');
-        }
-      });
+      try {
+        await loadOfferingsFromFirestore({
+          state: comercialState,
+          onSuccess: () => {
+            vigNames = comercialState.vigNames;
+            tecNames = comercialState.tecNames;
+            console.log('✅ Desplegables cargados en comercial.js');
+          }
+        });
+      } catch (error) {
+        console.error('❌ Error cargando desplegables:', error);
+      }
       
       watchDesplegablesRealtime({
         state: comercialState,
@@ -116,12 +189,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Función para esperar a que los catálogos estén cargados
+  async function ensureCatalogLoaded() {
+    return new Promise(resolve => {
+      if (vigNames.length > 0 && tecNames.length > 0) {
+        resolve();
+      } else {
+        const checkInterval = setInterval(() => {
+          if (vigNames.length > 0 && tecNames.length > 0) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 100);
+        // Timeout después de 10 segundos
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          console.warn('⚠️ Los catálogos tardaron demasiado en cargar');
+          resolve();
+        }, 10000);
+      }
+    });
+  }
+
   // =========================
   // 5) NAVEGACIÓN
   // =========================
   document.getElementById('logout-btn')?.addEventListener('click', () => auth.signOut());
   menuOptions.forEach(btn => btn.addEventListener('click', () => showSection(btn.dataset.section)));
 
+  document.getElementById('pending-card')?.addEventListener('click', () => showSection('pendientes'));
   document.getElementById('won-card')?.addEventListener('click',   () => showSection('ganados'));
   document.getElementById('expiring-card')?.addEventListener('click', () => showSection('ganados'));
   document.getElementById('in-process-card')?.addEventListener('click', () => showSection('ejecucion'));
@@ -134,55 +230,105 @@ document.addEventListener('DOMContentLoaded', () => {
 
     menuOptions.forEach(btn => btn.classList.toggle('active', btn.dataset.section === sectionId));
 
-    if (sectionId === 'inicio')    loadDashboardData();
-    if (sectionId === 'ganados')   loadTableData(CLIENT_STATUS.WON, 'initial');
-    if (sectionId === 'ejecucion') loadExecList();
+    if (sectionId === 'inicio')     loadDashboardData();
+    if (sectionId === 'pendientes') loadTableData('Ofrecido', 'initial');
+    if (sectionId === 'ganados')    loadTableData(CLIENT_STATUS.WON, 'initial');
+    if (sectionId === 'ejecucion')  loadExecList();
   }
 
   // =========================
   // 6) DASHBOARD
   // =========================
   async function loadDashboardData() {
-    loadingOverlay.style.display = 'flex';
+    const loadingOverlay = document.getElementById('dashboardLoadingOverlay');
+    if (loadingOverlay) loadingOverlay.style.display = 'flex';
+    const startTime = Date.now();
     try {
-      const userZone = sessionStorage.getItem('userZone');
-      if (!userZone) throw new Error("Zona de usuario no encontrada.");
-
-      const clientsSnapshot = await db.collectionGroup('clients').where('zone', '==', userZone).get();
-      const clients = clientsSnapshot.docs.map(doc => doc.data());
+      const userId = auth.currentUser?.uid;
+      const userEmail = auth.currentUser?.email;
+      console.log('🔍 Dashboard - Usuario autenticado:', { userId, userEmail });
+      
+      if (!userId) {
+        console.error('❌ No hay usuario autenticado');
+        throw new Error('Usuario no autenticado');
+      }
+      
+      // Leer directamente de users/{userId}/clients (sin filtros adicionales)
+      const clientsSnapshot = await db.collection('users').doc(userId).collection('clients').get();
+      console.log(`✅ Clientes encontrados en users/${userId}/clients: ${clientsSnapshot.docs.length}`);
+      
+      const clients = clientsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('📄 Cliente:', {
+          id: doc.id,
+          name: data.name,
+          clientStatus: data.clientStatus,
+          creadoPor: data.creadoPor,
+          zone: data.zone
+        });
+        return data;
+      });
+      
+      // Separar clientes por estado
+      const pendingClients = clients.filter(c => c.clientStatus === 'Ofrecido');
       const wonClients = clients.filter(c => c.clientStatus === CLIENT_STATUS.WON);
 
-      document.getElementById('won-count').textContent = wonClients.length;
-      document.getElementById('in-process-count').textContent =
-        wonClients.filter(c => c.execution?.overallStatus === 'in_process').length;
-
-      document.getElementById('expiring-count').textContent = wonClients.filter(c => {
+      // Actualizar contadores
+      const pendingCountEl = document.getElementById('pending-count');
+      const wonCountEl = document.getElementById('won-count');
+      const expiringEl = document.getElementById('expiring-count');
+      
+      if (pendingCountEl) pendingCountEl.textContent = pendingClients.length;
+      if (wonCountEl) wonCountEl.textContent = wonClients.length;
+      
+      const expiringCount = wonClients.filter(c => {
         const duration = c.offerings?.[0]?.frequency || 0;
         if (c.implementationDate && duration > 0) {
           return dayjs(c.implementationDate).add(duration, 'month').diff(dayjs(), 'month') <= 6;
         }
         return false;
       }).length;
+      
+      if (expiringEl) expiringEl.textContent = expiringCount;
 
-      updateDashboardWidgets(wonClients);
+      // Pasar TODOS los clientes para actualizar widgets (no solo wonClients)
+      updateDashboardWidgets(clients);
+      console.log(`✅ Dashboard cargado en ${Date.now() - startTime}ms`);
     } catch (error) {
-      console.error("Error cargando datos del dashboard:", error);
+      console.error("❌ Error cargando datos del dashboard:", error);
+      // Mostrar valores por defecto con validación de nulos
+      const pendingCountEl = document.getElementById('pending-count');
+      const wonCountEl = document.getElementById('won-count');
+      const expiringEl = document.getElementById('expiring-count');
+      
+      if (pendingCountEl) pendingCountEl.textContent = '0';
+      if (wonCountEl) wonCountEl.textContent = '0';
+      if (expiringEl) expiringEl.textContent = '0';
     } finally {
-      loadingOverlay.style.display = 'none';
+      const loadingOverlay = document.getElementById('dashboardLoadingOverlay');
+      if (loadingOverlay) loadingOverlay.style.display = 'none';
     }
   }
 
   function updateDashboardWidgets(clients) {
+    console.log('📊 updateDashboardWidgets - Clientes recibidos:', clients);
     let vaCount = 0, vatCount = 0;
     let pendingExecCount = 0, inProcessExecCount = 0, executedCount = 0;
     const userRanking = {};
 
     clients.forEach(client => {
+      console.log('📋 Procesando cliente:', { 
+        name: client.name, 
+        offerings: client.offerings,
+        execution: client.execution
+      });
+      
       const userEmail = client.creadoPor || 'Desconocido';
       userRanking[userEmail] = (userRanking[userEmail] || 0) + 1;
 
       if (Array.isArray(client.offerings)) {
         client.offerings.forEach(offer => {
+          console.log('🎁 Oferta:', { name: offer.name, category: offer.category });
           if ((offer.category || '').includes('Vigilancia')) vaCount++;
           else if ((offer.category || '').includes('Tecnología') || (offer.category || '').includes('Tecnologia')) vatCount++;
         });
@@ -201,19 +347,33 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    const sortedUsers = Object.entries(userRanking).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    document.getElementById('user-ranking-list').innerHTML =
-      sortedUsers.map(([email, count]) => `<li><span class="user-info">${email.split('@')[0]}</span><strong class="user-rank">${count}</strong></li>`).join('')
-      || '<li>No hay datos en esta zona.</li>';
+    console.log('📊 Conteos:', { vaCount, vatCount, pendingExecCount, inProcessExecCount, executedCount, userRanking });
 
-    document.getElementById('va-count').textContent  = vaCount;
-    document.getElementById('vat-count').textContent = vatCount;
+    const sortedUsers = Object.entries(userRanking).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const userRankingList = document.getElementById('user-ranking-list');
+    if (userRankingList) {
+      userRankingList.innerHTML =
+        sortedUsers.map(([email, count]) => `<li><span class="user-info">${email.split('@')[0]}</span><strong class="user-rank">${count}</strong></li>`).join('')
+        || '<li>No hay datos en esta zona.</li>';
+    }
+
+    const vaCountEl = document.getElementById('va-count');
+    const vatCountEl = document.getElementById('vat-count');
+    
+    if (vaCountEl) vaCountEl.textContent = vaCount;
+    if (vatCountEl) vatCountEl.textContent = vatCount;
 
     renderExecutionChart(pendingExecCount, inProcessExecCount, executedCount);
   }
 
   function renderExecutionChart(pending, inProcess, executed) {
-    const ctx = document.getElementById('services-chart').getContext('2d');
+    const chartEl = document.getElementById('services-chart');
+    if (!chartEl) {
+      console.warn('⚠️ Elemento services-chart no encontrado');
+      return;
+    }
+    
+    const ctx = chartEl.getContext('2d');
     if (servicesChart) servicesChart.destroy();
     Chart.register(ChartDataLabels);
     servicesChart = new Chart(ctx, {
@@ -236,27 +396,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // =========================
   // 7) TABLAS
-  // =========================
   async function loadTableData(status, direction = 'next') {
     loadingOverlay.style.display = 'flex';
     const state = paginationState[status];
     try {
-      const userZone = sessionStorage.getItem('userZone');
-      if (!userZone) throw new Error("Zona de usuario no encontrada.");
-      let query = db.collectionGroup('clients')
-        .where('clientStatus', '==', status)
-        .where('zone', '==', userZone)
-        .orderBy('createdAt', 'desc')
-        .limit(PAGE_SIZE);
+      const userId = auth.currentUser?.uid;
+      if (!userId) throw new Error("Usuario no autenticado");
+      
+      // Usar direct path access en lugar de collectionGroup
+      // Esto evita problemas de índices de Firestore
+      let allDocs = [];
+      const clientsRef = db.collection('users').doc(userId).collection('clients');
+      const snapshot = await clientsRef.get();
+      
+      // Filtrar por status localmente
+      allDocs = snapshot.docs.filter(doc => doc.data().clientStatus === status);
+      
+      // Ordenar por createdAt descendente
+      allDocs.sort((a, b) => {
+        const aDate = a.data().createdAt?.toDate() || new Date(0);
+        const bDate = b.data().createdAt?.toDate() || new Date(0);
+        return bDate - aDate;
+      });
+      
+      // Aplicar paginación
+      const PAGE_SIZE = 10;
       if (direction === 'initial') { state.lastDoc = null; state.pageHistory = [null]; }
-      const cursorDoc = direction === 'prev' ? state.pageHistory[state.pageHistory.length - 2] : state.lastDoc;
-      if (cursorDoc) query = query.startAfter(cursorDoc);
-      const snapshot = await query.get();
-      const docs = snapshot.docs;
-      if (direction === 'next' && docs.length > 0) { state.lastDoc = docs[docs.length - 1]; state.pageHistory.push(state.lastDoc); }
-      else if (direction === 'prev') { state.pageHistory.pop(); state.lastDoc = state.pageHistory[state.pageHistory.length - 1]; }
-      else if (direction === 'initial' && docs.length > 0) { state.lastDoc = docs[docs.length - 1]; state.pageHistory = [null, state.lastDoc]; }
-      await renderWonTable(docs);
+      
+      const startIdx = state.pageHistory.length > 0 ? (state.pageHistory.length - 1) * PAGE_SIZE : 0;
+      const docs = allDocs.slice(startIdx, startIdx + PAGE_SIZE);
+      
+      if (direction === 'next' && docs.length > 0) { 
+        state.lastDoc = docs[docs.length - 1]; 
+        state.pageHistory.push(state.lastDoc); 
+      } else if (direction === 'prev') { 
+        state.pageHistory.pop(); 
+        state.lastDoc = state.pageHistory[state.pageHistory.length - 1]; 
+      } else if (direction === 'initial' && docs.length > 0) { 
+        state.lastDoc = docs[docs.length - 1]; 
+        state.pageHistory = [null, state.lastDoc]; 
+      }
+      
+      await renderTable(docs, status);
       updatePaginationButtons(status, docs.length);
     } catch (error) {
       console.error(`Error cargando tabla de ${status}:`, error);
@@ -265,10 +446,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function renderWonTable(docs) {
-    const tbody = document.getElementById('won-table-body');
+  async function renderTable(docs, status) {
+    // Determinar qué tabla usar según el status
+    const tableBodyId = status === 'Ofrecido' ? 'pending-table-body' : 'won-table-body';
+    const tbody = document.getElementById(tableBodyId);
+    if (!tbody) {
+      console.error(`❌ Tabla con ID ${tableBodyId} no encontrada`);
+      return;
+    }
+    
     tbody.innerHTML = '';
-    if (docs.length === 0) { tbody.innerHTML = `<tr><td colspan="8">No se encontraron registros en su zona.</td></tr>`; return; }
+    const colSpan = status === 'Ofrecido' ? 6 : 7;
+    if (docs.length === 0) { 
+      tbody.innerHTML = `<tr><td colspan="${colSpan}">No se encontraron registros.</td></tr>`; 
+      return; 
+    }
 
     const rowsHtml = await Promise.all(docs.map(async (doc) => {
       const client = doc.data();
@@ -284,6 +476,12 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>`;
       let remainingMonthsText = 'N/A', textColorClass = '';
       const duration = client.offerings?.[0]?.frequency || 0;
+      
+      // Debug logs
+      if (status === 'Ganado') {
+        console.log(`🔍 Cliente: ${client.name}, implementationDate:`, client.implementationDate, 'duration:', duration);
+      }
+      
       if (client.implementationDate && duration > 0) {
         const expirationDate = dayjs(client.implementationDate).add(duration, 'month');
         const remainingMonths = expirationDate.diff(dayjs(), 'month');
@@ -299,16 +497,27 @@ document.addEventListener('DOMContentLoaded', () => {
           <i class="fas fa-tasks"></i> Gestionar
         </button>`;
 
-      return `<tr>
-        <td><span class="code-text">${creationDate}</span></td>
-        <td><span class="code-text">${implementationDate}</span></td>
-        <td><span class="client-name-highlight">${client.name || 'N/A'}</span></td>
-        <td><span class="code-text">${client.ruc || 'N/A'}</span></td>
-        <td>${servicesHTML}</td>
-        <td>${createdByFullName}</td>
-        <td class="${textColorClass}">${remainingMonthsText}</td>
-        <td>${actionsHTML}</td>
-      </tr>`;
+      // Renderizar diferentes columnas según el status
+      if (status === 'Ofrecido') {
+        return `<tr>
+          <td><span class="code-text">${creationDate}</span></td>
+          <td><span class="client-name-highlight">${client.name || 'N/A'}</span></td>
+          <td><span class="code-text">${client.ruc || 'N/A'}</span></td>
+          <td>${servicesHTML}</td>
+          <td>${createdByFullName}</td>
+          <td>${actionsHTML}</td>
+        </tr>`;
+      } else {
+        return `<tr>
+          <td><span class="code-text">${creationDate}</span></td>
+          <td><span class="code-text">${implementationDate}</span></td>
+          <td><span class="client-name-highlight">${client.name || 'N/A'}</span></td>
+          <td><span class="code-text">${client.ruc || 'N/A'}</span></td>
+          <td>${servicesHTML}</td>
+          <td>${createdByFullName}</td>
+          <td class="${textColorClass}">${remainingMonthsText}</td>
+        </tr>`;
+      }
     }));
     tbody.innerHTML = rowsHtml.join('');
 
@@ -324,9 +533,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updatePaginationButtons(status, fetchedCount) {
-    const prefix = 'won';
-    document.getElementById(`${prefix}-prev`).disabled = paginationState[status].pageHistory.length <= 2;
-    document.getElementById(`${prefix}-next`).disabled = fetchedCount < PAGE_SIZE;
+    // Determinar el prefijo según el status
+    const prefix = status === 'Ofrecido' ? 'pending' : 'won';
+    const prevBtn = document.getElementById(`${prefix}-prev`);
+    const nextBtn = document.getElementById(`${prefix}-next`);
+    
+    if (prevBtn) prevBtn.disabled = paginationState[status].pageHistory.length <= 2;
+    if (nextBtn) nextBtn.disabled = fetchedCount < PAGE_SIZE;
   }
 
   // =========================
@@ -336,16 +549,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('exec-table-body');
     tbody.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
     try {
-      const userZone = sessionStorage.getItem('userZone');
-      if (!userZone) throw new Error("Zona de usuario no encontrada.");
-      const snap = await db.collectionGroup('clients')
+      const userId = window.currentUserId;
+      if (!userId) throw new Error("Usuario no autenticado.");
+      
+      // Usar direct path access en lugar de collectionGroup
+      const snap = await db.collection('users').doc(userId).collection('clients')
         .where('clientStatus', '==', 'Ganado')
         .where('execution.overallStatus', 'in', ['in_process', 'executed'])
-        .where('zone', '==', userZone)
         .orderBy('execution.updatedAt', 'desc')
         .get();
 
-      if (snap.empty) { tbody.innerHTML = '<tr><td colspan="7">No hay clientes en proceso de ejecución en su zona.</td></tr>'; return; }
+      if (snap.empty) { 
+        tbody.innerHTML = '<tr><td colspan="7">No hay clientes en proceso de ejecución.</td></tr>'; 
+        return; 
+      }
 
       const rowsHtml = await Promise.all(snap.docs.map(async (doc) => {
         const d = doc.data();
@@ -357,13 +574,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="service-count">${servicesCount} Servicio${servicesCount !== 1 ? 's' : ''}</span>
             <a class="view-details-link" data-path="${doc.ref.path}"><i class="fas fa-list-ul"></i> Ver Detalles</a>
           </div>`;
-        const actionsHTML = `
-          <div class="action-icons-wrapper">
-            <i class="fas fa-cogs action-icon edit-services-btn" data-path="${doc.ref.path}" title="Editar Servicios"></i>
-          </div>
-          <button class="btn-action btn-action-manage exec-open" data-path="${doc.ref.path}">
-            <i class="fas fa-tasks"></i> Gestionar
-          </button>`;
+        // En Proceso de Ejecución es solo lectura - sin botones de editar/gestionar
+        const actionsHTML = `<i class="fas fa-eye action-icon view-only-icon" title="Visualización"></i>`;
         return `<tr>
           <td><span class="code-text">${d.createdAt ? dayjs(d.createdAt.toDate()).format('DD/MM/YYYY') : 'N/A'}</span></td>
           <td><span class="client-name-highlight">${d.name || 'N/A'}</span></td>
@@ -376,13 +588,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }));
       tbody.innerHTML = rowsHtml.join('');
 
-      tbody.querySelectorAll('.exec-open, .view-details-link, .edit-services-btn').forEach(el => {
+      tbody.querySelectorAll('.view-details-link').forEach(el => {
         el.addEventListener('click', (ev) => {
           const target = ev.currentTarget;
           const path = target.dataset.path;
-          if (target.classList.contains('exec-open')) openExecutionModal(path, 'executed');
-          else if (target.classList.contains('view-details-link')) handleClientAction(path, 'view');
-          else if (target.classList.contains('edit-services-btn')) openServicesEditor(path);
+          handleClientAction(path, 'view');
         });
       });
     } catch (error) {
@@ -459,13 +669,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // 10) MODAL EJECUCIÓN
   // =========================
   let currentExecPath = null;
+  let currentExecMode = null;
   const executionModalOverlay = document.getElementById('execution-modal-overlay');
 
   function openExecutionModal(docPath, mode) {
     currentExecPath = docPath;
+    currentExecMode = mode; // Guardar el modo actual
     const body = document.getElementById('execution-items-body');
     const title = document.getElementById('execution-modal-title');
-    title.textContent = mode === 'executed' ? 'Marcar Servicios como Ejecutados' : 'Marcar Servicios en Proceso';
+    const datePickerWrapper = document.getElementById('execution-date-picker-wrapper');
+    const dateInput = document.getElementById('execution-date-input');
+    
+    // Para modo "in_process" (desde Solicitudes Pendientes), mostrar "Ganado"
+    // Para modo "executed" (desde otro lugar), mostrar "Marcar Servicios como Ejecutados"
+    title.textContent = mode === 'executed' ? 'Marcar Servicios como Ejecutados' : 'Marcar Cliente como Ganado';
+    
+    // Mostrar/ocultar selector de fecha según el modo
+    if (mode === 'in_process') {
+      datePickerWrapper.style.display = 'block';
+      dateInput.value = dayjs().format('YYYY-MM-DD');
+    } else {
+      datePickerWrapper.style.display = 'none';
+    }
+    
     body.innerHTML = '<tr><td colspan="3">Cargando...</td></tr>';
     openModal(executionModalOverlay);
 
@@ -485,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
           buttonHTML = `<button class="modal-button btn-modal-secondary btn-xs" disabled>Ejecutado</button>`;
         } else {
           const nextStatus = mode === 'executed' ? 'executed' : 'in_process';
-          const buttonText = mode === 'executed' ? 'Ejecutado' : 'En Proceso';
+          const buttonText = mode === 'in_process' ? 'Ganado' : 'Ejecutado';
           buttonHTML = `<button class="modal-button btn-modal-primary btn-xs exec-mark-item" data-next-status="${nextStatus}">${buttonText}</button>`;
         }
         const tr = document.createElement('tr');
@@ -535,7 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      if (!hasChanges) { alert("No se realizaron cambios."); return; }
+      if (!hasChanges) { showMessage("No se realizaron cambios.", "warning"); return; }
 
       const updatedOfferings = Array.from(statusMap.values());
       updatedOfferings.forEach(o => { if (o.status !== 'executed') allExecuted = false; });
@@ -551,14 +777,27 @@ document.addEventListener('DOMContentLoaded', () => {
       if (becameInProcess && !data.stateDates?.inProcessAt) updates['stateDates.inProcessAt'] = firebase.firestore.FieldValue.serverTimestamp();
       if (allExecuted && !data.stateDates?.executedAt)      updates['stateDates.executedAt'] = firebase.firestore.FieldValue.serverTimestamp();
 
+      // Si estamos en modo "in_process" (marcar como Ganado), cambiar clientStatus y agregar executedAt como implementationDate
+      if (currentExecMode === 'in_process') {
+        const dateInput = document.getElementById('execution-date-input');
+        const dateString = dateInput.value;
+        // Convertir la fecha de string (YYYY-MM-DD) a timestamp de Firestore
+        const executionDate = firebase.firestore.Timestamp.fromDate(new Date(dateString + 'T00:00:00Z'));
+        updates['clientStatus'] = 'Ganado';
+        updates['executedAt'] = executionDate;
+        updates['implementationDate'] = executionDate; // Usar la misma fecha como implementationDate
+        console.log('✅ Marcando cliente como Ganado con fecha:', dayjs(dateString).format('DD/MM/YYYY'));
+      }
+
       await clientRef.update(updates);
-      alert('Estados de ejecución actualizados con éxito.');
+      showMessage('Estados de ejecución actualizados con éxito.', 'success');
       closeModal(executionModalOverlay);
-      loadExecList();
+      loadDashboardData(); // Recargar dashboard para actualizar contadores
+      loadTableData('Ofrecido', 'initial'); // Recargar tabla de pendientes
       loadTableData(CLIENT_STATUS.WON, 'initial');
     } catch (error) {
       console.error("Error al guardar ejecución:", error);
-      alert("No se pudieron guardar los cambios.");
+      showMessage("No se pudieron guardar los cambios.", "error");
     } finally {
       loadingOverlay.style.display = 'none';
       saveBtn.disabled = false;
@@ -601,7 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!editTecnologiaContainer.children.length) editTecnologiaContainer.appendChild(createOfferingRow(TECNOLOGIA_CATEGORY));
     } catch (e) {
       console.error('Error al abrir editor de servicios:', e);
-      alert('No se pudieron cargar los servicios.');
+      showMessage('No se pudieron cargar los servicios.', 'error');
       closeModal(servicesEditorModal);
     }
   }
@@ -701,7 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
       batch.set(clientRef.collection('logs').doc(), logEntry);
       await batch.commit();
 
-      alert("Servicios actualizados con éxito.");
+      showMessage("Servicios actualizados con éxito.", "success");
       closeModal(servicesEditorModal);
 
       const active = document.querySelector('.menu-option.active')?.dataset.section;
@@ -710,7 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadDashboardData();
     } catch (e) {
       console.error("Error al guardar servicios:", e);
-      alert("No se pudieron guardar los cambios en los servicios.");
+      showMessage("No se pudieron guardar los cambios en los servicios.", "error");
     } finally {
       servicesEditorSaveBtn.disabled = false;
       servicesEditorSaveBtn.textContent = 'Guardar Cambios';
@@ -720,20 +959,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // 12) EVENTOS GLOBALES
   // =========================
+  document.getElementById('pending-next')?.addEventListener('click', () => loadTableData('Ofrecido', 'next'));
+  document.getElementById('pending-prev')?.addEventListener('click', () => loadTableData('Ofrecido', 'prev'));
+  
   document.getElementById('won-next')?.addEventListener('click', () => loadTableData(CLIENT_STATUS.WON, 'next'));
   document.getElementById('won-prev')?.addEventListener('click', () => loadTableData(CLIENT_STATUS.WON, 'prev'));
 
+  // Event listeners explícitos para botones de cancelar
+  document.getElementById('execution-modal-cancel')?.addEventListener('click', () => closeModal(executionModalOverlay));
+  document.getElementById('services-editor-cancel-btn')?.addEventListener('click', () => closeModal(servicesEditorModal));
+  document.getElementById('services-editor-close-btn')?.addEventListener('click', () => closeModal(servicesEditorModal));
+  document.getElementById('execution-modal-close')?.addEventListener('click', () => closeModal(executionModalOverlay));
+
   document.addEventListener('click', (e) => {
     // Cerrar modales
-    if (e.target.id === 'execution-modal-close' || e.target.closest('#execution-modal-close')) closeModal(executionModalOverlay);
     if (e.target.id === 'execution-modal-save') saveExecutionModal();
-    if (e.target.id === 'modal-close-btn' || e.target.closest('#modal-close-btn')) closeModal(modalOverlay);
-
-    if (e.target.id === 'services-editor-close-btn' || e.target.closest('#services-editor-close-btn') ||
-        e.target.id === 'services-editor-cancel-btn' || e.target.closest('#services-editor-cancel-btn')) {
-      closeModal(servicesEditorModal);
-    }
     if (e.target.id === 'services-editor-save-btn') saveServicesChanges();
+    if (e.target.id === 'modal-close-btn' || e.target.closest('#modal-close-btn')) closeModal(modalOverlay);
   });
 
   // Acceso rápido desde tabla

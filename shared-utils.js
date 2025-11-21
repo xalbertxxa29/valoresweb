@@ -84,6 +84,11 @@ async function loadOfferingsFromFirestore(config = {}) {
   console.log('🔄 Cargando desplegables desde Firestore...');
   
   try {
+    // Usar db global (debe estar inicializado en firebase-config.js)
+    if (typeof db === 'undefined' || !db) {
+      throw new Error('Firebase Firestore no está disponible. Asegúrate de que firebase-config.js se cargó correctamente');
+    }
+    
     const coll = db.collection('DESPEGABLES');
     const [vig, tec] = await Promise.all([
       coll.doc('VIGILANCIA').get(),
@@ -124,31 +129,33 @@ function watchDesplegablesRealtime(config = {}) {
   
   console.log('👁️ Monitoreando cambios en desplegables...');
   
+  // Usar db global (debe estar inicializado en firebase-config.js)
+  if (typeof db === 'undefined' || !db) {
+    console.error('❌ Firebase Firestore no está disponible para watchDesplegablesRealtime');
+    return [];
+  }
+  
   const coll = db.collection('DESPEGABLES');
   const unsubscribers = [];
   
   // Listener para VIGILANCIA
-  const unsubVig = coll.doc('VIGILANCIA').onSnapshot(() => {
-    loadOfferingsFromFirestore({
-      state,
-      onSuccess: () => {
-        console.log('🔄 Vigilancia actualizada en tiempo real');
-        if (onUpdate) onUpdate('vigilancia');
-      }
-    });
+  const unsubVig = coll.doc('VIGILANCIA').onSnapshot((docSnap) => {
+    if (state.vigNames !== undefined) {
+      state.vigNames = parseDesplegableDoc(docSnap);
+      console.log('🔄 Vigilancia actualizada en tiempo real:', state.vigNames.length, 'items');
+      if (onUpdate) onUpdate('vigilancia');
+    }
   }, (error) => {
     console.error('❌ Error escuchando VIGILANCIA:', error);
   });
   
   // Listener para TECNOLOGIA
-  const unsubTec = coll.doc('TECNOLOGIA').onSnapshot(() => {
-    loadOfferingsFromFirestore({
-      state,
-      onSuccess: () => {
-        console.log('🔄 Tecnología actualizada en tiempo real');
-        if (onUpdate) onUpdate('tecnologia');
-      }
-    });
+  const unsubTec = coll.doc('TECNOLOGIA').onSnapshot((docSnap) => {
+    if (state.tecNames !== undefined) {
+      state.tecNames = parseDesplegableDoc(docSnap);
+      console.log('🔄 Tecnología actualizada en tiempo real:', state.tecNames.length, 'items');
+      if (onUpdate) onUpdate('tecnologia');
+    }
   }, (error) => {
     console.error('❌ Error escuchando TECNOLOGIA:', error);
   });
@@ -188,6 +195,11 @@ function buildOptionsHTML(category, vigNames, tecNames, selectedName = '') {
  * @returns {Promise<void>}
  */
 async function addOptionToFirestore(category, optionName) {
+  // Usar db global (debe estar inicializado en firebase-config.js)
+  if (typeof db === 'undefined' || !db) {
+    throw new Error('Firebase Firestore no está disponible');
+  }
+  
   const docId = category === VIGILANCIA_CATEGORY ? 'VIGILANCIA' : 'TECNOLOGIA';
   const ref = db.collection('DESPEGABLES').doc(docId);
   const clean = (optionName || '').trim();

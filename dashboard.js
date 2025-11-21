@@ -5,8 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // Firebase ya está inicializado en firebase-config.js
   const auth = firebase.auth();
-  const db   = firebase.firestore();
-  window.auth = auth; window.db = db;
+  // Usar db global de firebase-config.js en lugar de redeclararla
+  // const db   = firebase.firestore();
+  window.auth = auth; 
+  // window.db ya está definida en firebase-config.js
 
   // Persistencia offline ya fue habilitada en firebase-config.js
 
@@ -207,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           sel.value = value;
         }
-        alert('Opción agregada correctamente (se sincroniza offline).');
+        showMessage('Opción agregada correctamente (se sincroniza offline).', 'success');
       }, 200);
     } catch (e) {
       console.error(e);
@@ -222,6 +224,45 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   function openModal(m) { m.classList.add('visible'); }
   function closeModal(m) { m.classList.remove('visible'); }
+
+  // Función para mostrar mensajes en modal
+  function showMessage(message, type = 'info') {
+    const messageModal = document.createElement('div');
+    messageModal.className = 'modal-overlay visible';
+    messageModal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 3000;';
+    
+    const colors = {
+      'success': '#4caf50',
+      'error': '#f44336',
+      'warning': '#ff9800',
+      'info': '#2196f3'
+    };
+    
+    const color = colors[type] || colors['info'];
+    
+    messageModal.innerHTML = `
+      <div style="background: white; border-radius: 8px; padding: 24px; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); text-align: center;">
+        <div style="font-size: 24px; color: ${color}; margin-bottom: 12px;">
+          ${type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '⚠' : 'ℹ'}
+        </div>
+        <p style="color: #333; font-size: 16px; margin: 16px 0; line-height: 1.5;">${message}</p>
+        <button style="background: ${color}; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">Aceptar</button>
+      </div>
+    `;
+    
+    document.body.appendChild(messageModal);
+    
+    const closeBtn = messageModal.querySelector('button');
+    closeBtn.addEventListener('click', () => {
+      messageModal.remove();
+    });
+    
+    messageModal.addEventListener('click', (e) => {
+      if (e.target === messageModal) {
+        messageModal.remove();
+      }
+    });
+  }
 
   async function getUserName(email) {
     if (!email) return 'Desconocido';
@@ -243,29 +284,59 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // Auth
   // =========================
+  
+  // Esperar a que shared-utils.js esté disponible
+  function waitForSharedUtils() {
+    return new Promise(resolve => {
+      const checkInterval = setInterval(() => {
+        if (typeof loadOfferingsFromFirestore !== 'undefined' && typeof watchDesplegablesRealtime !== 'undefined') {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 50);
+      // Timeout después de 5 segundos
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        console.warn('⚠️ shared-utils.js tardó demasiado en cargar');
+        resolve();
+      }, 5000);
+    });
+  }
+  
   auth.onAuthStateChanged(async (user) => {
     if (!user) { window.location.href = 'index.html'; return; }
+
+    // Guardar el UID del usuario para consultas posteriores
+    window.currentUserId = user.uid;
+    console.log('👤 Usuario autenticado con UID:', user.uid);
 
     // Nombre en sidebar
     const uiName = sessionStorage.getItem('userName');
     document.getElementById('user-fullname').textContent = uiName || user.email;
 
+    // Esperar a que shared-utils esté disponible
+    await waitForSharedUtils();
+
     // Cargar desplegables desde Firestore y activar realtime
     // Usando shared-utils.js con callbacks personalizados para dashboard
     const dashboardState = { vigNames, tecNames };
     
-    await loadOfferingsFromFirestore({
-      state: dashboardState,
-      onSuccess: () => {
-        vigNames = dashboardState.vigNames;
-        tecNames = dashboardState.tecNames;
-        availableOfferings = [
-          ...vigNames.map(name => ({ name, category: VIGILANCIA_CATEGORY })),
-          ...tecNames.map(name => ({ name, category: TECNOLOGIA_CATEGORY })),
-        ];
-        refreshAllOfferingSelects();
-      }
-    });
+    try {
+      await loadOfferingsFromFirestore({
+        state: dashboardState,
+        onSuccess: () => {
+          vigNames = dashboardState.vigNames;
+          tecNames = dashboardState.tecNames;
+          availableOfferings = [
+            ...vigNames.map(name => ({ name, category: VIGILANCIA_CATEGORY })),
+            ...tecNames.map(name => ({ name, category: TECNOLOGIA_CATEGORY })),
+          ];
+          refreshAllOfferingSelects();
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error cargando desplegables:', error);
+    }
     
     watchDesplegablesRealtime({
       state: dashboardState,
@@ -314,8 +385,16 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('❌ Error al agregar fila de tecnología:', error);
       }
     });
-    servicesEditorCloseBtn?.addEventListener('click', () => closeModal(servicesEditorModal));
-    servicesEditorCancelBtn?.addEventListener('click', () => closeModal(servicesEditorModal));
+    servicesEditorCloseBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal(servicesEditorModal);
+    });
+    servicesEditorCancelBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal(servicesEditorModal);
+    });
     servicesEditorSaveBtn?.addEventListener('click', saveServicesChanges);
 
     // Botones de tarjetas / paginación
@@ -385,17 +464,39 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inicio: métricas + gráfico
   // =========================
   async function loadDashboardData() {
-    loadingOverlay.style.display = 'flex';
+    const loadingOverlay = document.getElementById('dashboardLoadingOverlay');
+    if (loadingOverlay) loadingOverlay.style.display = 'flex';
+    const startTime = Date.now();
     try {
-      const snap = await db.collectionGroup('clients').get();
-      const clients = snap.docs.map(d => d.data());
+      console.log('🔍 Buscando TODOS los clientes usando collectionGroup...');
+      
+      // Usar collectionGroup para buscar en TODOS los clientes de TODOS los usuarios
+      const clientsSnapshot = await db.collectionGroup('clients').get();
+      console.log(`✅ Total de clientes encontrados: ${clientsSnapshot.docs.length}`);
+      
+      const clients = clientsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('📄 Cliente:', {
+          id: doc.id,
+          name: data.name,
+          clientStatus: data.clientStatus,
+          path: doc.ref.path
+        });
+        return data;
+      });
+      
+      console.log('✅ Total de clientes obtenidos:', clients.length);
 
       // Tarjetas
-      document.getElementById('pending-count').textContent =
-        clients.filter(c => c.clientStatus === CLIENT_STATUS.PENDING).length;
+      const pendingCountEl = document.getElementById('pending-count');
+      if (pendingCountEl) {
+        pendingCountEl.textContent = clients.filter(c => c.clientStatus === CLIENT_STATUS.PENDING).length;
+      }
 
-      document.getElementById('won-count').textContent =
-        clients.filter(c => c.clientStatus === CLIENT_STATUS.WON).length;
+      const wonCountEl = document.getElementById('won-count');
+      if (wonCountEl) {
+        wonCountEl.textContent = clients.filter(c => c.clientStatus === CLIENT_STATUS.WON).length;
+      }
 
       const expiringCount = clients.filter(c => {
         const isWon = c.clientStatus === CLIENT_STATUS.WON;
@@ -406,14 +507,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return false;
       }).length;
-      document.getElementById('expiring-count').textContent = expiringCount;
+      
+      const expiringCountEl = document.getElementById('expiring-count');
+      if (expiringCountEl) {
+        expiringCountEl.textContent = expiringCount;
+      }
 
       // Indicadores + gráfico (usa mapeo nombre->categoría derivado de DESPEGABLES)
       await updateIndicatorsAndChart(clients);
     } catch (e) {
-      console.error('Error dashboard:', e);
+      console.error('❌ Error dashboard:', e);
+      // Mostrar valores por defecto con validación
+      const pendingCountEl = document.getElementById('pending-count');
+      const wonCountEl = document.getElementById('won-count');
+      const expiringCountEl = document.getElementById('expiring-count');
+      
+      if (pendingCountEl) pendingCountEl.textContent = '0';
+      if (wonCountEl) wonCountEl.textContent = '0';
+      if (expiringCountEl) expiringCountEl.textContent = '0';
     } finally {
-      loadingOverlay.style.display = 'none';
+      const loadingOverlay = document.getElementById('dashboardLoadingOverlay');
+      if (loadingOverlay) loadingOverlay.style.display = 'none';
     }
   }
 
@@ -453,13 +567,18 @@ document.addEventListener('DOMContentLoaded', () => {
       return { display, count };
     }));
     const ul = document.getElementById('user-ranking-list');
-    ul.innerHTML = top3Resolved.length
-      ? top3Resolved.map(i => `<li><span class="user-info">${i.display}</span><span class="user-rank">${i.count}</span></li>`).join('')
-      : '<li>No hay datos.</li>';
+    if (ul) {
+      ul.innerHTML = top3Resolved.length
+        ? top3Resolved.map(i => `<li><span class="user-info">${i.display}</span><span class="user-rank">${i.count}</span></li>`).join('')
+        : '<li>No hay datos.</li>';
+    }
 
     // Contadores por tipo
-    document.getElementById('va-count').textContent  = vaCount;
-    document.getElementById('vat-count').textContent = vatCount;
+    const vaCountEl = document.getElementById('va-count');
+    const vatCountEl = document.getElementById('vat-count');
+    
+    if (vaCountEl) vaCountEl.textContent = vaCount;
+    if (vatCountEl) vatCountEl.textContent = vatCount;
 
     // Gráfico
     try {
@@ -473,7 +592,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderServicesChart(labels, pendingData, wonData) {
-    const ctx = document.getElementById('services-chart').getContext('2d');
+    const chartEl = document.getElementById('services-chart');
+    if (!chartEl) {
+      console.warn('⚠️ Elemento services-chart no encontrado');
+      return;
+    }
+    
+    const ctx = chartEl.getContext('2d');
     if (servicesChart) servicesChart.destroy();
     Chart.register(ChartDataLabels);
     servicesChart = new Chart(ctx, {
@@ -645,14 +770,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadingOverlay.style.display = 'flex';
     try {
       await db.doc(docPath).delete();
-      alert('Registro eliminado con éxito.');
+      showMessage('Registro eliminado con éxito.', 'success');
       loadDashboardData();
       const active = document.querySelector('.menu-option.active')?.dataset.section;
       if (active === 'pendientes') loadTableData(CLIENT_STATUS.PENDING, 'initial');
       if (active === 'ganados')    loadTableData(CLIENT_STATUS.WON, 'initial');
     } catch (e) {
       console.error('Error al eliminar:', e);
-      alert('No se pudo eliminar el registro.');
+      showMessage('No se pudo eliminar el registro.', 'error');
     } finally {
       loadingOverlay.style.display = 'none';
     }
@@ -803,9 +928,9 @@ document.addEventListener('DOMContentLoaded', () => {
           changes
         });
         await batch.commit();
-        alert('Cambios guardados con éxito.');
+        showMessage('Cambios guardados con éxito.', 'success');
       } else {
-        alert('No se detectaron cambios.');
+        showMessage('No se detectaron cambios.', 'warning');
       }
       closeModal(modalOverlay);
       const active = document.querySelector('.menu-option.active')?.dataset.section;
@@ -814,7 +939,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadDashboardData();
     } catch (e) {
       console.error('Error guardando:', e);
-      alert('No se pudieron guardar los cambios.');
+      showMessage('No se pudieron guardar los cambios.', 'error');
     } finally {
       btn.disabled = false; btn.textContent = 'Guardar Cambios';
     }
@@ -849,7 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (e) {
       console.error('Error abriendo editor:', e);
-      alert('No se pudieron cargar los servicios.');
+      showMessage('No se pudieron cargar los servicios.', 'error');
       closeModal(servicesEditorModal);
     }
   }
@@ -893,7 +1018,7 @@ document.addEventListener('DOMContentLoaded', () => {
         to: newOfferings
       });
       await batch.commit();
-      alert('Servicios actualizados con éxito.');
+      showMessage('Servicios actualizados con éxito.', 'success');
       closeModal(servicesEditorModal);
 
       const active = document.querySelector('.menu-option.active')?.dataset.section;
@@ -902,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadDashboardData();
     } catch (e) {
       console.error('Error guardando servicios:', e);
-      alert('No se pudieron guardar los cambios.');
+      showMessage('No se pudieron guardar los cambios.', 'error');
     } finally {
       servicesEditorSaveBtn.disabled = false;
       servicesEditorSaveBtn.textContent = 'Guardar Cambios';
@@ -1065,7 +1190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      if (!hasChanges) { alert('No se realizaron cambios.'); return; }
+      if (!hasChanges) { showMessage('No se realizaron cambios.', 'warning'); return; }
 
       const updated = Array.from(statusMap.values());
       updated.forEach(o => { if (o.status !== 'executed') allExecuted = false; });
@@ -1082,13 +1207,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (allExecuted    && !data.stateDates?.executedAt)   updates['stateDates.executedAt']  = firebase.firestore.FieldValue.serverTimestamp();
 
       await ref.update(updates);
-      alert('Estados de ejecución actualizados.');
+      showMessage('Estados de ejecución actualizados.', 'success');
       closeModal(execOverlay);
       loadExecList();
       loadTableData(CLIENT_STATUS.WON, 'initial');
     } catch (e) {
       console.error('Error guardando ejecución:', e);
-      alert('No se pudieron guardar los cambios.');
+      showMessage('No se pudieron guardar los cambios.', 'error');
     } finally {
       loadingOverlay.style.display = 'none';
       saveBtn.disabled = false;
@@ -1141,6 +1266,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.id === 'execution-modal-save') saveExecutionModal();
 
     if (e.target.id === 'date-picker-close-btn' || e.target.closest('#date-picker-close-btn')) closeModal(datePickerModal);
+    if (e.target.id === 'date-picker-cancel-btn' || e.target.closest('#date-picker-cancel-btn')) closeModal(datePickerModal);
     if (e.target.id === 'date-picker-confirm-btn') handleConfirmWon();
   });
 
@@ -1156,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function handleConfirmWon() {
     const docPath = datePickerDocPathEl.value;
     const dateVal = datePickerInput.value; // YYYY-MM-DD
-    if (!dateVal) { alert('Selecciona una fecha.'); return; }
+    if (!dateVal) { showMessage('Selecciona una fecha.', 'warning'); return; }
     try {
       const ref = db.doc(docPath);
       await ref.update({
@@ -1164,14 +1290,14 @@ document.addEventListener('DOMContentLoaded', () => {
         implementationDate: dateVal,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      alert('Marcado como GANADO.');
+      showMessage('Marcado como GANADO.', 'success');
       closeModal(datePickerModal);
       loadDashboardData();
       loadTableData(CLIENT_STATUS.PENDING, 'initial');
       loadTableData(CLIENT_STATUS.WON, 'initial');
     } catch (e) {
       console.error(e);
-      alert('No se pudo marcar como GANADO.');
+      showMessage('No se pudo marcar como GANADO.', 'error');
     }
   }
 

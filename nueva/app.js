@@ -153,6 +153,45 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // SISTEMA DE MENSAJES MODAL
+    function showMessage(message, type = 'info') {
+        const messageModal = document.createElement('div');
+        messageModal.className = 'modal-overlay visible';
+        messageModal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 3000;';
+        
+        const colors = {
+            'success': '#4caf50',
+            'error': '#f44336',
+            'warning': '#ff9800',
+            'info': '#2196f3'
+        };
+        
+        const color = colors[type] || colors['info'];
+        
+        messageModal.innerHTML = `
+            <div style="background: white; border-radius: 8px; padding: 24px; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); text-align: center;">
+                <div style="font-size: 24px; color: ${color}; margin-bottom: 12px;">
+                    ${type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '⚠' : 'ℹ'}
+                </div>
+                <p style="color: #333; font-size: 16px; margin: 16px 0; line-height: 1.5;">${message}</p>
+                <button style="background: ${color}; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">Aceptar</button>
+            </div>
+        `;
+        
+        document.body.appendChild(messageModal);
+        
+        const closeBtn = messageModal.querySelector('button');
+        closeBtn.addEventListener('click', () => {
+            messageModal.remove();
+        });
+        
+        messageModal.addEventListener('click', (e) => {
+            if (e.target === messageModal) {
+                messageModal.remove();
+            }
+        });
+    }
+
     // Función para actualizar availableOfferings desde CATALOG
     function updateAvailableOfferings() {
         availableOfferings = [...CATALOG.vigilancia, ...CATALOG.tecnologia];
@@ -296,7 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         elements.dateModalConfirmBtn.addEventListener("click", () => {
             const selectedDate = elements.implementationDateInput.value;
-            if (!selectedDate) { alert('Por favor, selecciona una fecha.'); return; }
+            if (!selectedDate) { showMessage('Por favor, selecciona una fecha.', 'warning'); return; }
             elements.datePickerModal.classList.add("hidden");
             if (resolveDateConfirmation) resolveDateConfirmation(selectedDate);
         });
@@ -466,7 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Agregar a Firestore
                 FirestoreService.addOfferingToFirestore(category, newOption).catch(e => {
                     console.error('❌ Error al guardar en Firestore:', e);
-                    alert('Opción agregada localmente pero hubo error al sincronizar con Firestore');
+                    showMessage('Opción agregada localmente pero hubo error al sincronizar con Firestore', 'warning');
                 });
                 
                 // Actualizar select
