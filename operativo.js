@@ -39,6 +39,63 @@ function showMessage(message, type = 'info') {
   });
 }
 
+// MODAL DE CONFIRMACIÓN DE ELIMINACIÓN
+function showDeleteConfirmationModal(onConfirm) {
+  const confirmModal = document.createElement('div');
+  confirmModal.className = 'modal-overlay visible';
+  confirmModal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 3000;';
+  
+  confirmModal.innerHTML = `
+    <div style="background: white; border-radius: 12px; padding: 32px; max-width: 420px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); text-align: center; animation: slideUp 0.3s ease-out;">
+      <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+      <h2 style="color: #333; margin: 0 0 12px 0; font-size: 20px; font-weight: 600;">¿Eliminar registro?</h2>
+      <p style="color: #666; margin: 0 0 24px 0; line-height: 1.6; font-size: 14px;">Esta acción no se puede deshacer. El registro será eliminado de forma permanente.</p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button class="delete-confirm-cancel" style="background: #e0e0e0; color: #333; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s;">Cancelar</button>
+        <button class="delete-confirm-accept" style="background: #f44336; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s;">Sí, eliminar</button>
+      </div>
+    </div>
+    <style>
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .delete-confirm-cancel:hover {
+        background: #d0d0d0;
+      }
+      .delete-confirm-accept:hover {
+        background: #e53935;
+      }
+    </style>
+  `;
+  
+  document.body.appendChild(confirmModal);
+  
+  // Botón Cancelar
+  confirmModal.querySelector('.delete-confirm-cancel').addEventListener('click', () => {
+    confirmModal.remove();
+  });
+  
+  // Botón Eliminar
+  confirmModal.querySelector('.delete-confirm-accept').addEventListener('click', () => {
+    confirmModal.remove();
+    if (typeof onConfirm === 'function') onConfirm();
+  });
+  
+  // Click fuera del modal para cancelar
+  confirmModal.addEventListener('click', (e) => {
+    if (e.target === confirmModal) {
+      confirmModal.remove();
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // 1) FIREBASE & CONSTANTES
