@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnóstico de Permisos - Valores</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .check-item {
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      border-left: 4px solid #ccc;
+      background: #f9f9f9;
+    }
+    .check-item.pass {
+      border-left-color: #4caf50;
+      background: #e8f5e9;
+    }
+    .check-item.fail {
+      border-left-color: #f44336;
+      background: #ffebee;
+    }
+    .check-item.warning {
+      border-left-color: #ff9800;
+      background: #fff3e0;
+    }
+    .check-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .check-desc {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.5;
+    }
+    .check-code {
+      background: #f0f0f0;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      margin-top: 0.5rem;
+      overflow-x: auto;
+    }
+    .action-needed {
+      background: #ffebee;
+      border: 1px solid #f44336;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1.5rem;
+      color: #c62828;
+    }
+    .action-needed strong {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 1rem;
+      width: 100%;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Diagnóstico de Permisos</h1>
+    <div id="results"></div>
+    <button onclick="location.href='dashboard.html'">← Volver al Dashboard</button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+
+  <script>
+    const results = document.getElementById('results');
+    let allPassed = true;
+
+    function addCheck(title, passed, desc, code = '', needsAction = false) {
+      const html = `
+        <div class="check-item ${passed ? 'pass' : needsAction ? 'warning' : 'fail'}">
+          <div class="check-title">${passed ? '✓' : needsAction ? '⚠' : '✕'} ${title}</div>
+          <div class="check-desc">${desc}</div>
+          ${code ? `<div class="check-code">${code}</div>` : ''}
+        </div>
+      `;
+      results.innerHTML += html;
+      if (!passed) allPassed = false;
+    }
+
+    async function runDiagnostics() {
+      try {
+        // 1. Firebase inicializado
+        addCheck(
+          'Firebase Inicializado',
+          !!firebase.apps.length,
+          firebase.apps.length ? 'Firebase se inicializó correctamente.' : 'Firebase no está disponible.'
+        );
+
+        // 2. Firestore disponible
+        addCheck(
+          'Firestore Database',
+          !!window.db,
+          window.db ? 'Firestore está disponible.' : 'Firestore no se pudo cargar.',
+          '',
+          !window.db
+        );
+
+        if (!window.db) {
+          results.innerHTML += `
+            <div class="action-needed">
+              <strong>Acción Requerida:</strong>
+              Verifica que firebase-config.js esté correctamente configurado y que la base de datos está habilitada en Firebase Console.
+            </div>
+          `;
+          return;
+        }
+
+        // 3. Autenticación
+        const user = firebase.auth().currentUser;
+        addCheck(
+          'Usuario Autenticado',
+          !!user,
+          user ? `Conectado como: ${user.email}` : 'No hay usuario autenticado.',
+          user ? `UID: ${user.uid}` : 'Necesitas iniciar sesión.'
+        );
+
+        if (!user) {
+          results.innerHTML += `
+            <div class="action-needed">
+              <strong>Acción Requerida:</strong>
+              Por favor <a href="index.html" style="color: #f44336; font-weight: 600;">inicia sesión</a> primero.
+            </div>
+          `;
+          return;
+        }
+
+        // 4. Permisos de lectura
+        try {
+          const ref = window.db.collection('usuarios').doc(user.uid);
+          await ref.get();
+          addCheck('Permiso de Lectura', true, 'Puedes leer documentos.');
+        } catch (e) {
+          addCheck('Permiso de Lectura', false, 'Error al leer documentos.', e.code);
+        }
+
+        // 5. Permisos de escritura (prueba sin guardar)
+        try {
+          const ref = window.db.collection('usuarios').doc(user.uid);
+          const testData = { test: true, timestamp: new Date() };
+          
+          // Intentar crear un documento de prueba
+          await ref.update(testData);
+          addCheck('Permiso de Escritura', true, 'Puedes escribir en Firestore.', 'Prueba de actualización exitosa');
+          
+          // Limpiar
+          await ref.update({ test: firebase.firestore.FieldValue.delete() });
+        } catch (e) {
+          addCheck(
+            'Permiso de Escritura',
+            false,
+            'Error al escribir en Firestore.',
+            e.code,
+            e.code === 'permission-denied'
+          );
+        }
+
+        // 6. Estructura de datos
+        try {
+          const clientsRef = window.db.collection('usuarios').doc(user.uid).collection('clients');
+          const snap = await clientsRef.limit(1).get();
+          addCheck(
+            'Estructura de Datos',
+            true,
+            `Se encontraron ${snap.size} cliente(s). La estructura parece correcta.`,
+            `Ruta: /usuarios/${user.uid}/clients/`
+          );
+        } catch (e) {
+          addCheck('Estructura de Datos', false, 'No se pudo verificar la estructura.', e.code);
+        }
+
+        // 7. CollectionGroup
+        try {
+          const snap = await window.db.collectionGroup('clients').limit(1).get();
+          addCheck(
+            'CollectionGroup Query',
+            true,
+            'Las consultas de collectionGroup funcionan correctamente.',
+            `Se encontraron ${snap.size} cliente(s)`
+          );
+        } catch (e) {
+          addCheck('CollectionGroup Query', false, 'Error en consultas groupales.', e.code);
+        }
+
+        // 8. Conexión de red
+        addCheck(
+          'Conexión de Red',
+          navigator.onLine,
+          navigator.onLine ? 'Conexión activa.' : 'Sin conexión. Los cambios se sincronizarán cuando recuperes conexión.',
+          '',
+          !navigator.onLine
+        );
+
+        // Resumen final
+        if (allPassed) {
+          results.innerHTML += `
+            <div class="check-item pass" style="margin-top: 1.5rem;">
+              <div class="check-title">✓ ¡Todo está configurado correctamente!</div>
+              <div class="check-desc">Deberías poder editar solicitudes pendientes sin problemas.</div>
+            </div>
+          `;
+        } else {
+          results.innerHTML += `
+            <div class="action-needed" style="margin-top: 1.5rem;">
+              <strong>Hay problemas que solucionar:</strong>
+              <ul style="margin: 0.5rem 0 0 1rem;">
+                <li>Verifica las reglas de Firestore en Firebase Console</li>
+                <li>Asegúrate de que tu usuario está autenticado</li>
+                <li>Comprueba que la estructura de datos es correcta</li>
+                <li>Contacta al administrador si persisten los problemas</li>
+              </ul>
+            </div>
+          `;
+        }
+
+      } catch (error) {
+        results.innerHTML += `
+          <div class="check-item fail">
+            <div class="check-title">✕ Error Inesperado</div>
+            <div class="check-desc">${error.message}</div>
+          </div>
+        `;
+      }
+    }
+
+    // Esperar autenticación
+    firebase.auth().onAuthStateChanged(() => {
+      results.innerHTML = '<p style="text-align: center; color: #666;">Ejecutando diagnóstico...</p>';
+      setTimeout(runDiagnostics, 500);
+    });
+  </script>
+</body>
+</html>

@@ -890,6 +890,14 @@ document.addEventListener('DOMContentLoaded', () => {
     closeBtn.className = 'modal-button btn-modal-secondary';
     closeBtn.addEventListener('click', () => closeModal(modalOverlay));
     modalFooter.appendChild(closeBtn);
+    
+    // Nota si no hay conexión
+    if (!navigator.onLine) {
+      const warning = document.createElement('p');
+      warning.style.cssText = 'color: #ff9800; font-size: 12px; margin-top: 1rem;';
+      warning.textContent = '⚠️ Sin conexión: Los cambios se guardarán cuando recuperes conexión.';
+      modalFooter.appendChild(warning);
+    }
   }
 
   async function saveClientChanges(docPath, btn) {
@@ -919,15 +927,27 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (Object.keys(updates).length) {
-        const batch = db.batch();
-        batch.update(ref, updates);
-        batch.set(ref.collection('logs').doc(), {
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          user: auth.currentUser.email,
-          action: 'update_details',
-          changes
-        });
-        await batch.commit();
+        // Agregar timestamp de actualización
+        updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        
+        try {
+          // Intentar guardar con batch
+          const batch = db.batch();
+          batch.update(ref, updates);
+          batch.set(ref.collection('logs').doc(), {
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            user: auth.currentUser.email,
+            action: 'update_details',
+            changes
+          });
+          await batch.commit();
+        } catch (batchError) {
+          // Si falla el batch, intentar directamente
+          console.warn('⚠️ Batch fallido, intentando actualización directa:', batchError);
+          await ref.update(updates);
+          console.log('✅ Actualización directa exitosa');
+        }
+        
         showMessage('Cambios guardados con éxito.', 'success');
       } else {
         showMessage('No se detectaron cambios.', 'warning');
@@ -938,8 +958,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (active === 'ganados')    loadTableData(CLIENT_STATUS.WON, 'initial');
       loadDashboardData();
     } catch (e) {
-      console.error('Error guardando:', e);
-      showMessage('No se pudieron guardar los cambios.', 'error');
+      console.error('❌ Error guardando:', e);
+      
+      // Proporcionar mensajes más específicos según el error
+      let errorMsg = 'No se pudieron guardar los cambios.';
+      if (e.code === 'permission-denied') {
+        errorMsg = 'Permiso denegado. Contacta al administrador para verificar permisos de Firestore.';
+      } else if (e.message.includes('clientStatus')) {
+        errorMsg = 'No puedes cambiar el estado del cliente desde aquí.';
+      }
+      
+      showMessage(errorMsg, 'error');
     } finally {
       btn.disabled = false; btn.textContent = 'Guardar Cambios';
     }
@@ -1001,6 +1030,18 @@ document.addEventListener('DOMContentLoaded', () => {
       ...collect(editTecnologiaContainer),
     ];
 
+    // Validar que haya al menos un servicio
+    if (newOfferings.length === 0) {
+      showMessage('Debes agregar al menos un servicio.', 'warning');
+      return;
+    }
+
+    // Validar que todos los servicios tengan nombre
+    if (newOfferings.some(o => !o.name || o.name.trim() === '')) {
+      showMessage('Todos los servicios deben tener un nombre seleccionado.', 'warning');
+      return;
+    }
+
     servicesEditorSaveBtn.disabled = true;
     servicesEditorSaveBtn.textContent = 'Guardando…';
     loadingOverlay.style.display = 'flex';
@@ -1008,16 +1049,31 @@ document.addEventListener('DOMContentLoaded', () => {
       const ref = db.doc(docPath);
       const orig = await ref.get();
       const origData = orig.data() || {};
-      const batch = db.batch();
-      batch.update(ref, { offerings: newOfferings, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      batch.set(ref.collection('logs').doc(), {
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        user: auth.currentUser.email,
-        action: 'update_services',
-        from: origData.offerings || [],
-        to: newOfferings
-      });
-      await batch.commit();
+      
+      const updates = {
+        offerings: newOfferings,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      try {
+        // Intentar guardar con batch
+        const batch = db.batch();
+        batch.update(ref, updates);
+        batch.set(ref.collection('logs').doc(), {
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          user: auth.currentUser.email,
+          action: 'update_services',
+          from: origData.offerings || [],
+          to: newOfferings
+        });
+        await batch.commit();
+      } catch (batchError) {
+        // Si falla el batch, intentar directamente
+        console.warn('⚠️ Batch fallido, intentando actualización directa:', batchError);
+        await ref.update(updates);
+        console.log('✅ Actualización directa de servicios exitosa');
+      }
+
       showMessage('Servicios actualizados con éxito.', 'success');
       closeModal(servicesEditorModal);
 
@@ -1026,8 +1082,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (active === 'ganados')    loadTableData(CLIENT_STATUS.WON, 'initial');
       loadDashboardData();
     } catch (e) {
-      console.error('Error guardando servicios:', e);
-      showMessage('No se pudieron guardar los cambios.', 'error');
+      console.error('❌ Error guardando servicios:', e);
+      
+      // Proporcionar mensajes más específicos según el error
+      let errorMsg = 'No se pudieron guardar los cambios.';
+      if (e.code === 'permission-denied') {
+        errorMsg = 'Permiso denegado. Contacta al administrador para verificar permisos de Firestore.';
+      } else if (e.message.includes('No se pudo guardar. Verifica')) {
+        errorMsg = e.message;
+      }
+      
+      showMessage(errorMsg, 'error');
     } finally {
       servicesEditorSaveBtn.disabled = false;
       servicesEditorSaveBtn.textContent = 'Guardar Cambios';

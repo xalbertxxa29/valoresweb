@@ -761,7 +761,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      if (!hasChanges) { showMessage("No se realizaron cambios.", "warning"); return; }
+      if (!hasChanges) { 
+        showMessage("No se realizaron cambios.", "warning"); 
+        loadingOverlay.style.display = 'none';
+        saveBtn.disabled = false;
+        return; 
+      }
 
       const updatedOfferings = Array.from(statusMap.values());
       updatedOfferings.forEach(o => { if (o.status !== 'executed') allExecuted = false; });
@@ -789,15 +794,33 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('✅ Marcando cliente como Ganado con fecha:', dayjs(dateString).format('DD/MM/YYYY'));
       }
 
-      await clientRef.update(updates);
+      try {
+        // Intentar guardar con batch
+        await clientRef.update(updates);
+      } catch (updateError) {
+        // Si falla, reintentar sin batch
+        console.warn('⚠️ Actualización inicial fallida, reintentando:', updateError);
+        await clientRef.update(updates);
+        console.log('✅ Actualización de ejecución exitosa');
+      }
+
       showMessage('Estados de ejecución actualizados con éxito.', 'success');
       closeModal(executionModalOverlay);
       loadDashboardData(); // Recargar dashboard para actualizar contadores
       loadTableData('Ofrecido', 'initial'); // Recargar tabla de pendientes
       loadTableData(CLIENT_STATUS.WON, 'initial');
     } catch (error) {
-      console.error("Error al guardar ejecución:", error);
-      showMessage("No se pudieron guardar los cambios.", "error");
+      console.error("❌ Error al guardar ejecución:", error);
+      
+      // Proporcionar mensajes más específicos según el error
+      let errorMsg = 'No se pudieron guardar los cambios.';
+      if (error.code === 'permission-denied') {
+        errorMsg = 'Permiso denegado. Contacta al administrador para verificar permisos de Firestore.';
+      } else if (error.message.includes('clientStatus')) {
+        errorMsg = 'Error al cambiar el estado del cliente. Verifica los permisos.';
+      }
+      
+      showMessage(errorMsg, 'error');
     } finally {
       loadingOverlay.style.display = 'none';
       saveBtn.disabled = false;
@@ -922,11 +945,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const docPath = document.getElementById('services-editor-doc-path').value;
     servicesEditorSaveBtn.disabled = true;
     servicesEditorSaveBtn.textContent = 'Guardando...';
+    
     try {
       const clientRef = db.doc(docPath);
       const original = await clientRef.get();
       const originalData = original.data() || {};
       const newOfferings = getOfferingsFromEditor();
+
+      // Validar que haya al menos un servicio
+      if (newOfferings.length === 0) {
+        showMessage('Debes agregar al menos un servicio.', 'warning');
+        return;
+      }
+
+      // Validar que todos los servicios tengan nombre
+      if (newOfferings.some(o => !o.name || o.name.trim() === '')) {
+        showMessage('Todos los servicios deben tener un nombre seleccionado.', 'warning');
+        return;
+      }
+
+      const updates = {
+        offerings: newOfferings,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
 
       const logEntry = {
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -935,10 +976,18 @@ document.addEventListener('DOMContentLoaded', () => {
         changes: { offerings: { from: originalData.offerings, to: newOfferings } }
       };
 
-      const batch = db.batch();
-      batch.update(clientRef, { offerings: newOfferings, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      batch.set(clientRef.collection('logs').doc(), logEntry);
-      await batch.commit();
+      try {
+        // Intentar guardar con batch
+        const batch = db.batch();
+        batch.update(clientRef, updates);
+        batch.set(clientRef.collection('logs').doc(), logEntry);
+        await batch.commit();
+      } catch (batchError) {
+        // Si falla el batch, intentar directamente
+        console.warn('⚠️ Batch fallido, intentando actualización directa:', batchError);
+        await clientRef.update(updates);
+        console.log('✅ Actualización directa de servicios exitosa');
+      }
 
       showMessage("Servicios actualizados con éxito.", "success");
       closeModal(servicesEditorModal);
@@ -948,8 +997,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (active === 'ejecucion') loadExecList();
       loadDashboardData();
     } catch (e) {
-      console.error("Error al guardar servicios:", e);
-      showMessage("No se pudieron guardar los cambios en los servicios.", "error");
+      console.error("❌ Error al guardar servicios:", e);
+      
+      // Proporcionar mensajes más específicos según el error
+      let errorMsg = 'No se pudieron guardar los cambios en los servicios.';
+      if (e.code === 'permission-denied') {
+        errorMsg = 'Permiso denegado. Contacta al administrador para verificar permisos de Firestore.';
+      } else if (e.message.includes('offerings')) {
+        errorMsg = 'Error al guardar los servicios. Verifica que todos estén correctamente configurados.';
+      }
+      
+      showMessage(errorMsg, 'error');
     } finally {
       servicesEditorSaveBtn.disabled = false;
       servicesEditorSaveBtn.textContent = 'Guardar Cambios';

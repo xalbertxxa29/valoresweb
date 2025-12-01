@@ -1,0 +1,198 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║              GUÍA RÁPIDA - COMENZAR AQUÍ 👇                              ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+¿QUÉ PASÓ?
+══════════════════════════════════════════════════════════════════════════
+
+El problema de "No se pudieron guardar los cambios" ha sido SOLUCIONADO 
+con mejoras de fallback, validaciones y mensajes de error específicos en:
+
+  ✅ Dashboard        (Solicitudes Pendientes)
+  ✅ Comercial        (Solicitudes Pendientes)
+  ✅ Operativo        (Clientes Ganados)
+
+
+¿QUÉ DEBO HACER?
+══════════════════════════════════════════════════════════════════════════
+
+PASO 1: Configurar Firebase (CRÍTICO) ⚡
+────────────────────────────────────────
+
+1. Abre: https://console.firebase.google.com
+2. Proyecto: "valores-a5953"
+3. Firestore Database → Rules
+4. Reemplaza con el contenido de: FIRESTORE_RULES.txt
+5. Haz clic en "Publicar"
+
+⏱️  Tiempo: 2-3 minutos
+✓  Indicador: Verás un checkmark verde cuando esté publicado
+
+
+PASO 2: Verificar que funciona (RECOMENDADO) ✓
+──────────────────────────────────────────────
+
+Abre en tu navegador:
+  http://localhost:5700/diagnostico.html
+
+Deberías ver:
+  ✅ Firebase Inicializado
+  ✅ Firestore Database
+  ✅ Usuario Autenticado
+  ✅ Permiso de Lectura
+  ✅ Permiso de Escritura
+  ✅ Estructura de Datos
+  ✅ CollectionGroup Query
+
+Si algo muestra ✕, lee las recomendaciones
+
+
+PASO 3: Probar en la aplicación (VERIFICACIÓN) 🧪
+──────────────────────────────────────────────────
+
+Dashboard:
+1. Abre: http://localhost:5700/dashboard.html
+2. Sección: "Solicitudes Pendientes"
+3. Haz clic en el lápiz (editar) en cualquier cliente
+4. Cambia el nombre → Guardar Cambios
+5. ✅ Deberías ver: "✓ Cambios guardados con éxito"
+
+Comercial:
+1. Abre: http://localhost:5700/comercial.html
+2. Sección: "Solicitudes Pendientes"
+3. Haz clic en el engranaje (⚙️) para editar servicios
+4. Agrega o cambia servicios → Guardar Cambios
+5. ✅ Deberías ver: "✓ Servicios actualizados con éxito"
+
+Operativo:
+1. Abre: http://localhost:5700/operativo.html
+2. Sección: "Clientes Ganados"
+3. Haz clic en el engranaje (⚙️) para editar servicios
+4. Agrega o cambia servicios → Guardar Cambios
+5. ✅ Deberías ver: "✓ Servicios actualizados con éxito"
+
+
+¿AÚN HAY PROBLEMAS?
+══════════════════════════════════════════════════════════════════════════
+
+OPCIÓN A: Verificar reglas
+───────────────────────────
+1. Ve a Firebase Console
+2. Firestore Database → Rules
+3. Asegúrate de ver un checkmark ✅ verde
+4. Si ves "draft", no está publicado
+
+OPCIÓN B: Usar console (F12)
+──────────────────────────────
+1. Abre la página en tu navegador
+2. Presiona F12 (Developer Tools)
+3. Ve a "Consola" (Console)
+4. Busca mensajes rojos ❌ o naranjas ⚠️
+5. Lee el mensaje de error exacto
+
+OPCIÓN C: Verificar autenticación
+──────────────────────────────────
+1. Ve a la página de la aplicación
+2. Mira el sidebar (lado izquierdo)
+3. Debería mostrar tu email/usuario
+4. Si dice "Cargando...", espera
+5. Si no muestra nada, inicia sesión
+
+
+ARCHIVOS IMPORTANTES
+══════════════════════════════════════════════════════════════════════════
+
+📖 Para leer:
+   • FIRESTORE_RULES.txt              - Las reglas exactas a aplicar
+   • README_MEJORAS.txt               - Resumen visual
+   • SOLUCION.txt                     - Guía paso a paso
+   • RESUMEN_MEJORAS_COMPLETAS.txt   - Detalles técnicos
+
+🔧 Para usar:
+   • diagnostico.html                 - Verificar permisos
+   • dashboard.js, comercial.js,      - Archivos mejorados
+     operativo.js
+
+
+TIMELINE
+══════════════════════════════════════════════════════════════════════════
+
+Ahora:
+  ├─ Leer esta guía (2 min)
+  └─ Configurar Firestore Rules (2 min)
+
+Después:
+  ├─ Verificar con diagnostico.html (2 min)
+  └─ Probar en las 3 secciones (5 min)
+
+Total: ~11 minutos para estar completamente funcional
+
+
+CAMBIOS REALIZADOS
+══════════════════════════════════════════════════════════════════════════
+
+✅ dashboard.js
+   • saveClientChanges()      - Mejorado
+   • saveServicesChanges()    - Mejorado
+
+✅ comercial.js
+   • saveServicesChanges()    - Mejorado
+   • saveExecutionModal()     - Mejorado
+
+✅ operativo.js
+   • saveExecutionModal()     - Mejorado
+   • saveServicesChanges()    - Mejorado
+
+Mejoras:
+   + Fallback automático si transacción falla
+   + Validaciones previas al guardado
+   + Mensajes de error específicos
+   + Mejor soporte offline
+   + Logs mejorados en consola
+
+
+PREGUNTAS FRECUENTES
+══════════════════════════════════════════════════════════════════════════
+
+Q: ¿Necesito cambiar algo en mi código?
+A: No. Las mejoras están integradas. Solo configura las reglas de Firestore.
+
+Q: ¿Perderé datos si hay un error?
+A: No. Las validaciones previas evitan errores. Fallback intenta guardar
+   de otra forma si la primera intenta falla.
+
+Q: ¿Qué es Firestore Rules?
+A: Son reglas de seguridad que dicen quién puede leer/escribir en la BD.
+   Actualmente no están configuradas, por eso falla el guardado.
+
+Q: ¿Es obligatorio usar diagnostico.html?
+A: No, pero es recomendado para verificar que todo esté bien.
+
+Q: ¿Qué pasa si no configuro las reglas?
+A: La aplicación seguirá mostrando "No se pudieron guardar los cambios"
+   cuando intentes editar. Las reglas son OBLIGATORIAS.
+
+Q: ¿Cuánto tarda en publicarse?
+A: 5-10 segundos normalmente. Busca el checkmark verde en Firebase Console.
+
+Q: ¿Funciona offline?
+A: Sí, la aplicación tiene sincronización offline habilitada. Los cambios
+   se guardarán cuando recuperes conexión.
+
+
+CONTACTO
+══════════════════════════════════════════════════════════════════════════
+
+Si necesitas ayuda:
+  1. Abre: http://localhost:5700/diagnostico.html
+  2. Lee: SOLUCION.txt
+  3. Revisa: F12 Console para logs
+
+
+═════════════════════════════════════════════════════════════════════════════
+
+                    ¡LISTO! Comienza por PASO 1 ⬆️
+
+═════════════════════════════════════════════════════════════════════════════

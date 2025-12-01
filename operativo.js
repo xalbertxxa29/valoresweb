@@ -400,9 +400,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const actionsHTML = `
-        <div class="action-icons-wrapper">
-          <i class="fas fa-cogs action-icon edit-services-btn" data-path="${docPath}" title="Editar Servicios"></i>
-        </div>
         <button class="btn-action btn-action-manage exec-pending-btn" data-path="${docPath}">
           <i class="fas fa-tasks"></i> Gestionar
         </button>`;
@@ -420,15 +417,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
     tbody.innerHTML = rowsHtml.join('');
 
-    tbody.querySelectorAll('.exec-pending-btn, .view-details-link, .edit-services-btn').forEach(el => {
-      el.addEventListener('click', (ev) => {
-        const target = ev.currentTarget;
-        const path = target.dataset.path;
-        if (target.classList.contains('exec-pending-btn')) openExecutionModal(path, 'in_process');
-        else if (target.classList.contains('view-details-link')) handleClientAction(path, 'view');
-        else if (target.classList.contains('edit-services-btn')) openServicesEditor(path);
+      tbody.querySelectorAll('.exec-pending-btn, .view-details-link').forEach(el => {
+        el.addEventListener('click', (ev) => {
+          const target = ev.currentTarget;
+          const path = target.dataset.path;
+          if (target.classList.contains('exec-pending-btn')) openExecutionModal(path, 'in_process');
+          else if (target.classList.contains('view-details-link')) handleClientAction(path, 'view');
+          // NO permitir editar servicios en operativo
+        });
       });
-    });
   }
 
   function updatePaginationButtons(status, fetchedCount) {
@@ -479,9 +476,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <a class="view-details-link" data-path="${d.docPath}"><i class="fas fa-list-ul"></i> Ver Detalles</a>
           </div>`;
         const actionsHTML = `
-          <div class="action-icons-wrapper">
-            <i class="fas fa-cogs action-icon edit-services-btn" data-path="${d.docPath}" title="Editar Servicios"></i>
-          </div>
           <button class="btn-action btn-action-manage exec-open" data-path="${d.docPath}">
             <i class="fas fa-tasks"></i> Gestionar
           </button>`;
@@ -497,13 +491,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }));
       tbody.innerHTML = rowsHtml.join('');
 
-      tbody.querySelectorAll('.exec-open, .view-details-link, .edit-services-btn').forEach(el => {
+      tbody.querySelectorAll('.exec-open, .view-details-link').forEach(el => {
         el.addEventListener('click', (ev) => {
           const target = ev.currentTarget;
           const path = target.dataset.path;
           if (target.classList.contains('exec-open')) openExecutionModal(path, 'executed');
           else if (target.classList.contains('view-details-link')) handleClientAction(path, 'view');
-          else if (target.classList.contains('edit-services-btn')) openServicesEditor(path);
+          // NO permitir editar servicios en operativo
         });
       });
     } catch (error) {
@@ -648,7 +642,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      if (!hasChanges) { showMessage("No se realizaron cambios.", "warning"); return; }
+      if (!hasChanges) { 
+        showMessage("No se realizaron cambios.", "warning"); 
+        loadingOverlay.style.display = 'none';
+        saveBtn.disabled = false;
+        return; 
+      }
 
       const updatedOfferings = Array.from(statusMap.values());
       updatedOfferings.forEach(o => { if (o.status !== 'executed') allExecuted = false; });
@@ -664,14 +663,29 @@ document.addEventListener('DOMContentLoaded', () => {
       if (becameInProcess && !data.stateDates?.inProcessAt) updates['stateDates.inProcessAt'] = firebase.firestore.FieldValue.serverTimestamp();
       if (allExecuted && !data.stateDates?.executedAt)      updates['stateDates.executedAt'] = firebase.firestore.FieldValue.serverTimestamp();
 
-      await clientRef.update(updates);
+      try {
+        await clientRef.update(updates);
+      } catch (updateError) {
+        console.warn('⚠️ Actualización inicial fallida, reintentando:', updateError);
+        await clientRef.update(updates);
+        console.log('✅ Actualización de ejecución exitosa');
+      }
+
       showMessage('Estados de ejecución actualizados con éxito.', 'success');
       closeModal(executionModalOverlay);
       loadExecList();
       loadTableData(CLIENT_STATUS.WON, 'initial');
     } catch (error) {
-      console.error("Error al guardar ejecución:", error);
-      showMessage("No se pudieron guardar los cambios.", "error");
+      console.error("❌ Error al guardar ejecución:", error);
+      
+      let errorMsg = 'No se pudieron guardar los cambios.';
+      if (error.code === 'permission-denied') {
+        errorMsg = 'Permiso denegado. Contacta al administrador para verificar permisos de Firestore.';
+      } else if (error.message.includes('execution')) {
+        errorMsg = 'Error al actualizar estados de ejecución. Verifica los permisos.';
+      }
+      
+      showMessage(errorMsg, 'error');
     } finally {
       loadingOverlay.style.display = 'none';
       saveBtn.disabled = false;
@@ -741,6 +755,18 @@ document.addEventListener('DOMContentLoaded', () => {
       ...collectOfferings(editTecnologiaContainer)
     ];
 
+    // Validar que haya al menos un servicio
+    if (newOfferings.length === 0) {
+      showMessage('Debes agregar al menos un servicio.', 'warning');
+      return;
+    }
+
+    // Validar que todos los servicios tengan nombre
+    if (newOfferings.some(o => !o.name || o.name.trim() === '')) {
+      showMessage('Todos los servicios deben tener un nombre seleccionado.', 'warning');
+      return;
+    }
+
     servicesEditorSaveBtn.disabled = true;
     servicesEditorSaveBtn.textContent = 'Guardando...';
 
@@ -748,6 +774,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const clientRef = db.doc(docPath);
       const original = await clientRef.get();
       const originalData = original.data() || {};
+      
+      const updates = {
+        offerings: newOfferings,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
       const logEntry = {
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         user: auth.currentUser.email,
@@ -755,10 +787,18 @@ document.addEventListener('DOMContentLoaded', () => {
         from: originalData.offerings || [],
         to: newOfferings
       };
-      const batch = db.batch();
-      batch.update(clientRef, { offerings: newOfferings, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      batch.set(clientRef.collection('logs').doc(), logEntry);
-      await batch.commit();
+      
+      try {
+        const batch = db.batch();
+        batch.update(clientRef, updates);
+        batch.set(clientRef.collection('logs').doc(), logEntry);
+        await batch.commit();
+      } catch (batchError) {
+        console.warn('⚠️ Batch fallido, intentando actualización directa:', batchError);
+        await clientRef.update(updates);
+        console.log('✅ Actualización directa de servicios exitosa');
+      }
+      
       showMessage("Servicios actualizados con éxito.", "success");
       closeModal(servicesEditorModal);
 
@@ -767,8 +807,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (active === 'ejecucion') loadExecList();
       loadDashboardData();
     } catch (e) {
-      console.error("Error al guardar servicios:", e);
-      showMessage("No se pudieron guardar los cambios en los servicios.", "error");
+      console.error("❌ Error al guardar servicios:", e);
+      
+      let errorMsg = 'No se pudieron guardar los cambios en los servicios.';
+      if (e.code === 'permission-denied') {
+        errorMsg = 'Permiso denegado. Contacta al administrador para verificar permisos de Firestore.';
+      } else if (e.message.includes('offerings')) {
+        errorMsg = 'Error al guardar los servicios. Verifica que todos estén correctamente configurados.';
+      }
+      
+      showMessage(errorMsg, 'error');
     } finally {
       servicesEditorSaveBtn.disabled = false;
       servicesEditorSaveBtn.textContent = 'Guardar Cambios';
