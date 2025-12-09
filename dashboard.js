@@ -829,6 +829,15 @@ document.addEventListener('DOMContentLoaded', () => {
   async function handleDelete(docPath) {
     loadingOverlay.style.display = 'flex';
     try {
+      // Validar que la ruta sea correcta
+      if (!docPath || docPath.includes('undefined')) {
+        console.error('Ruta inválida:', docPath);
+        showMessage('Error: ruta de documento inválida.', 'error');
+        loadingOverlay.style.display = 'none';
+        return;
+      }
+      
+      console.log('Eliminando documento:', docPath);
       await db.doc(docPath).delete();
       showMessage('Registro eliminado con éxito.', 'success');
       loadDashboardData();
