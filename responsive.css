@@ -801,3 +801,65 @@ select {
     page-break-inside: avoid;
   }
 }
+
+/* ============================================
+   FILTRO PREDICTIVO - RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .search-input-wrapper {
+    max-width: 100%;
+  }
+
+  .search-input {
+    font-size: 16px; /* Prevenir zoom en iOS */
+  }
+
+  .suggestions-dropdown {
+    max-height: 300px;
+  }
+
+  .suggestion-item {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-filter-container {
+    margin-bottom: 1.5rem;
+    padding: 0;
+  }
+
+  .search-input-wrapper {
+    width: 100%;
+  }
+
+  .search-input {
+    font-size: 16px;
+    padding: 10px 14px 10px 40px;
+  }
+
+  .search-icon {
+    left: 12px;
+    font-size: 0.9rem;
+  }
+
+  .suggestions-dropdown {
+    max-height: 250px;
+    max-width: calc(100vw - 20px);
+  }
+
+  .suggestion-item {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+
+  .suggestion-item-name {
+    word-break: break-word;
+  }
+
+  .suggestion-item-ruc {
+    font-size: 0.75rem;
+  }
+}
+

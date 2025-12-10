@@ -117,6 +117,19 @@
     <!-- PENDIENTES -->
     <section id="pendientes-section" class="dashboard-section">
       <h1>Solicitudes Pendientes</h1>
+      <div class="search-filter-container">
+        <div class="search-input-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input 
+            type="text" 
+            id="pending-search-input" 
+            class="search-input" 
+            placeholder="Buscar cliente por nombre..."
+            aria-label="Buscar solicitudes pendientes por nombre del cliente"
+          />
+          <div id="pending-suggestions" class="suggestions-dropdown"></div>
+        </div>
+      </div>
       <div class="table-responsive">
         <table>
           <thead>
@@ -141,6 +154,19 @@
     <!-- GANADOS -->
     <section id="ganados-section" class="dashboard-section">
       <h1>Clientes Ganados</h1>
+      <div class="search-filter-container">
+        <div class="search-input-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input 
+            type="text" 
+            id="won-search-input" 
+            class="search-input" 
+            placeholder="Buscar cliente por nombre..."
+            aria-label="Buscar clientes ganados por nombre del cliente"
+          />
+          <div id="won-suggestions" class="suggestions-dropdown"></div>
+        </div>
+      </div>
       <div class="table-responsive">
         <table>
           <thead>
@@ -249,23 +275,24 @@
 
   <!-- Modal de ejecución -->
   <div id="execution-modal-overlay" class="modal-overlay">
-    <div class="modal-container">
+    <div class="modal-container modal-execution">
       <div class="modal-header">
-        <h2 id="execution-modal-title">Ejecución de servicios</h2>
+        <div class="modal-header-content">
+          <h2 id="execution-modal-title">Marcar Servicios en Proceso</h2>
+          <p class="modal-subtitle">Actualiza el estado de ejecución de cada servicio</p>
+        </div>
         <button id="execution-modal-close" class="modal-close-button">&times;</button>
       </div>
-      <div class="modal-body">
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr><th>Servicio</th><th>Estado</th><th>Acción</th></tr>
-            </thead>
-            <tbody id="execution-items-body"></tbody>
-          </table>
+      <div class="modal-body modal-body-execution">
+        <div class="execution-items-container">
+          <div id="execution-items-list" class="execution-items-list"></div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button id="execution-modal-save" class="modal-button btn-modal-primary">Guardar Cambios</button>
+      <div class="modal-footer modal-footer-execution">
+        <button id="execution-modal-cancel" class="modal-button btn-modal-secondary">Cancelar</button>
+        <button id="execution-modal-save" class="modal-button btn-modal-primary">
+          <i class="fas fa-check"></i> Guardar Cambios
+        </button>
       </div>
     </div>
   </div>
