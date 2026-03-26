@@ -927,7 +927,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createOfferingRow(category, offeringData = {}) {
     const wrapper = document.createElement('div');
-    wrapper.className = 'offering-row';
+    wrapper.className = 'offering-row-container premium-light-row';
 
     const options = category === VIGILANCIA_CATEGORY ? vigNames : tecNames;
     const names = [...new Set([...(options || []), offeringData.name].filter(Boolean))];
@@ -936,24 +936,43 @@ document.addEventListener('DOMContentLoaded', () => {
         .concat(names.map(n => `<option value="${n}" ${n === offeringData.name ? 'selected' : ''}>${n}</option>`))
         .join('');
 
-    const totalVal = Number(offeringData.total ?? 0); // evita toFixed en undefined
+    const totalVal = Number(offeringData.total ?? 0);
 
     wrapper.innerHTML = `
       <div class="offering-row-header">
         <select class="offering-name">${selectOptions}</select>
-        <button type="button" class="remove-offering-row-btn" title="Quitar">&times;</button>
+        <button type="button" class="remove-offering-row-btn-mini" title="Quitar">&times;</button>
       </div>
-      <div class="offering-row-body">
-        <input type="number" placeholder="Cant." class="offering-quantity" value="${offeringData.quantity || 1}" min="1">
-        <select class="offering-provision-mode">
-          <option value="Cobro mensual" ${offeringData.provisionMode === 'Cobro mensual' ? 'selected' : ''}>Cobro mensual</option>
-          <option value="Por todo el contrato" ${offeringData.provisionMode === 'Por todo el contrato' ? 'selected' : ''}>Por todo el contrato</option>
-        </select>
-        <select class="offering-frequency">
-          ${[6,12,18,24,36].map(m => `<option value="${m}" ${Number(offeringData.frequency)===m?'selected':''}>${m}m</option>`).join('')}
-        </select>
-        <input type="number" placeholder="Costo S/." class="offering-cost" value="${offeringData.cost || ''}" min="0" step="0.01">
-        <input type="text" placeholder="Total" class="offering-total" value="S/ ${totalVal.toFixed(2)}" readonly>
+      <div class="offering-grid-details">
+        <div class="detail-field">
+          <span class="detail-label">UNIDADES</span>
+          <input type="number" class="offering-quantity" value="${offeringData.quantity || 1}" min="1">
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">MODALIDAD</span>
+          <select class="offering-provision-mode">
+            <option value="Cobro mensual" ${offeringData.provisionMode === 'Cobro mensual' ? 'selected' : ''}>Mensual</option>
+            <option value="Por todo el contrato" ${offeringData.provisionMode === 'Por todo el contrato' ? 'selected' : ''}>Contrato</option>
+          </select>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">FRECUENCIA</span>
+          <select class="offering-frequency">
+            ${[6,12,18,24,36].map(m => `<option value="${m}" ${Number(offeringData.frequency)===m?'selected':''}>${m} meses</option>`).join('')}
+          </select>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">MESES</span>
+          <input type="number" class="offering-months" min="1" value="${offeringData.months || (offeringData.frequency || 6)}">
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">COSTO PROV.</span>
+          <input type="number" class="offering-cost" value="${offeringData.cost || ''}" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="detail-field total-field">
+          <span class="detail-label">TOTAL</span>
+          <input type="text" class="offering-total" value="S/ ${totalVal.toFixed(2)}" readonly>
+        </div>
         <input type="hidden" class="offering-category" value="${category}">
       </div>`;
 
@@ -962,8 +981,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const cost     = parseFloat(wrapper.querySelector('.offering-cost').value) || 0;
       const mode     = wrapper.querySelector('.offering-provision-mode').value;
       let total = 0;
-      if (mode === 'Por todo el contrato') total = cost * quantity;
-      else {
+      if (mode === 'Por todo el contrato') {
+        total = cost * quantity;
+      } else {
         const freq = parseFloat(wrapper.querySelector('.offering-frequency').value) || 6;
         total = cost * quantity * freq;
       }
@@ -972,7 +992,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     wrapper.addEventListener('input',  calculateTotal);
     wrapper.addEventListener('change', calculateTotal);
-    wrapper.querySelector('.remove-offering-row-btn').addEventListener('click', () => wrapper.remove());
+    wrapper.querySelector('.remove-offering-row-btn-mini').addEventListener('click', () => {
+      wrapper.style.opacity = '0';
+      wrapper.style.transform = 'translateX(20px)';
+      setTimeout(() => wrapper.remove(), 300);
+    });
+    
     calculateTotal();
     return wrapper;
   }

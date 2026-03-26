@@ -597,32 +597,104 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('⚠️ Elemento services-chart no encontrado');
       return;
     }
-    
+
     const ctx = chartEl.getContext('2d');
     if (servicesChart) servicesChart.destroy();
+
+    // Empty state: si no hay datos, mostrar mensaje en lugar de gráfico vacío
+    const hasData = labels.length > 0 && (pendingData.some(v => v > 0) || wonData.some(v => v > 0));
+    const container = chartEl.closest('.chart-container-full');
+    const existingEmpty = container ? container.querySelector('.chart-empty-state') : null;
+    if (existingEmpty) existingEmpty.remove();
+
+    if (!hasData) {
+      chartEl.style.display = 'none';
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'chart-empty-state';
+      emptyDiv.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:320px;color:#94a3b8;gap:1rem;">
+          <svg width="56" height="56" fill="none" viewBox="0 0 24 24" stroke="currentColor" opacity="0.4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <p style="font-size:1rem;font-weight:600;color:#64748b;margin:0;">A\u00fan no hay servicios registrados</p>
+          <p style="font-size:0.85rem;color:#94a3b8;margin:0;">Los datos aparecer\u00e1n aqu\u00ed cuando se registren clientes.</p>
+        </div>`;
+      if (container) container.appendChild(emptyDiv);
+      return;
+    }
+
+    chartEl.style.display = '';
     Chart.register(ChartDataLabels);
+
+    // Truncar etiquetas largas para el eje X
+    const truncateLabel = (label, max) => {
+      max = max || 20;
+      return label.length > max ? label.substring(0, max) + '\u2026' : label;
+    };
+    const shortLabels = labels.map(function(l) { return truncateLabel(l); });
+
     servicesChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels,
+        labels: shortLabels,
         datasets: [
-          { label: 'Solicitudes Pendientes', backgroundColor: 'rgba(255, 167, 38, 0.7)', data: pendingData },
-          { label: 'Clientes Ganados',       backgroundColor: 'rgba(102, 187, 106, 0.7)', data: wonData }
+          {
+            label: 'Solicitudes Pendientes',
+            backgroundColor: 'rgba(251, 146, 60, 0.8)',
+            borderColor: 'rgba(234, 88, 12, 0.9)',
+            borderWidth: 1,
+            borderRadius: 4,
+            data: pendingData
+          },
+          {
+            label: 'Clientes Ganados',
+            backgroundColor: 'rgba(34, 197, 94, 0.8)',
+            borderColor: 'rgba(22, 163, 74, 0.9)',
+            borderWidth: 1,
+            borderRadius: 4,
+            data: wonData
+          }
         ]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 700, easing: 'easeInOutQuart' },
         plugins: {
           datalabels: {
-            color: '#fff', anchor: 'end', align: 'start', offset: -20,
-            font: { weight: 'bold' },
-            formatter: v => v || ''
+            display: function(ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; },
+            color: '#fff',
+            anchor: 'end',
+            align: 'start',
+            offset: -18,
+            font: { weight: 'bold', size: 11 },
+            formatter: function(v) { return v || ''; }
+          },
+          tooltip: {
+            callbacks: {
+              title: function(items) { return labels[items[0].dataIndex] || shortLabels[items[0].dataIndex]; }
+            }
+          },
+          legend: {
+            position: 'top',
+            labels: { padding: 16, usePointStyle: true, pointStyle: 'rectRounded', font: { size: 12 } }
           }
         },
-        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+        scales: {
+          x: {
+            stacked: true,
+            ticks: { maxRotation: 45, minRotation: 30, font: { size: 11 }, color: '#64748b' },
+            grid: { display: false }
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            ticks: { font: { size: 11 }, color: '#64748b', precision: 0 },
+            grid: { color: 'rgba(0,0,0,0.06)' }
+          }
+        }
       }
     });
   }
+
 
   // =========================
   // Tablas (Pendientes / Ganados)
@@ -694,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <i class="fas fa-check"></i> GANADO
                       </button>`;
           return `
-            <tr>
+            <tr data-doc-path="${path}">
               <td><span class="code-text">${creationDate}</span></td>
               <td><span class="client-name-highlight">${client.name || 'N/A'}</span></td>
               <td><span class="code-text">${client.ruc || 'N/A'}</span></td>
@@ -718,7 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <i class="fas fa-tasks"></i> Gestionar
                       </button>`;
           return `
-            <tr>
+            <tr data-doc-path="${path}">
               <td><span class="code-text">${creationDate}</span></td>
               <td><span class="code-text">${implementationDate}</span></td>
               <td><span class="client-name-highlight">${client.name || 'N/A'}</span></td>
@@ -764,6 +836,249 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       loadingOverlay.style.display = 'none';
     }
+
+    // Inicializar filtro predictivo después de cargar la tabla
+    initializeSearchFilter(status);
+  }
+
+  // =========================
+  // FILTRO PREDICTIVO
+  // =========================
+  // Cache global para almacenar todos los clientes sin paginar
+  const allClientsCache = {
+    [CLIENT_STATUS.PENDING]: [],
+    [CLIENT_STATUS.WON]: []
+  };
+
+  async function loadAllClientsForSearch(status) {
+    if (allClientsCache[status].length > 0) {
+      return allClientsCache[status];
+    }
+
+    try {
+      let query = db.collectionGroup('clients')
+        .where('clientStatus', '==', status)
+        .orderBy('createdAt', 'desc');
+
+      const snapshot = await query.get();
+      const docs = snapshot.docs;
+
+      allClientsCache[status] = docs.map(doc => {
+        const client = doc.data();
+        return {
+          name: client.name || 'N/A',
+          ruc: client.ruc || 'N/A',
+          path: doc.ref.path
+        };
+      });
+
+      return allClientsCache[status];
+    } catch (error) {
+      console.error('Error cargando todos los clientes:', error);
+      return [];
+    }
+  }
+
+  function initializeSearchFilter(status) {
+    const isWon = status === CLIENT_STATUS.WON;
+    const searchInputId = isWon ? 'won-search-input' : 'pending-search-input';
+    const suggestionsId = isWon ? 'won-suggestions' : 'pending-suggestions';
+    const tableBodyId = isWon ? 'won-table-body' : 'pending-table-body';
+    
+    const searchInput = document.getElementById(searchInputId);
+    const suggestionsDropdown = document.getElementById(suggestionsId);
+    const tableBody = document.getElementById(tableBodyId);
+    
+    if (!searchInput || !suggestionsDropdown) return;
+    
+    // Event listener para el input de búsqueda
+    searchInput.addEventListener('input', async (e) => {
+      const query = e.target.value.trim().toLowerCase();
+      
+      if (query.length === 0) {
+        suggestionsDropdown.classList.remove('active');
+        // Mostrar todos los clientes de la página actual
+        tableBody.querySelectorAll('tr').forEach(row => row.style.display = '');
+        return;
+      }
+
+      // Cargar todos los clientes de Firestore
+      const allClients = await loadAllClientsForSearch(status);
+      
+      // Filtrar clientes que coincidan con la búsqueda
+      const matches = allClients.filter(client => 
+        client.name.toLowerCase().includes(query) || 
+        client.ruc.toLowerCase().includes(query)
+      );
+      
+      if (matches.length === 0) {
+        suggestionsDropdown.innerHTML = `
+          <div class="no-suggestions">
+            <i class="fas fa-search"></i>
+            <p>No se encontraron clientes</p>
+          </div>
+        `;
+        suggestionsDropdown.classList.add('active');
+        tableBody.querySelectorAll('tr').forEach(row => row.style.display = 'none');
+        return;
+      }
+      
+      // Mostrar sugerencias (máximo 8)
+      suggestionsDropdown.innerHTML = matches.slice(0, 8).map((client, index) => `
+        <div class="suggestion-item" data-path="${client.path}">
+          <i class="fas fa-building"></i>
+          <div>
+            <div class="suggestion-item-name">${highlightMatch(client.name, query)}</div>
+            <div class="suggestion-item-ruc">${client.ruc}</div>
+          </div>
+        </div>
+      `).join('');
+      
+      suggestionsDropdown.classList.add('active');
+      
+      // Event listeners para sugerencias
+      suggestionsDropdown.querySelectorAll('.suggestion-item').forEach(item => {
+        item.addEventListener('click', async () => {
+          const selectedPath = item.dataset.path;
+          const selectedClient = matches.find(c => c.path === selectedPath);
+          searchInput.value = selectedClient.name;
+          suggestionsDropdown.classList.remove('active');
+          
+          loadingOverlay.style.display = 'flex';
+          try {
+            // Cargar el documento específico
+            const docRef = db.doc(selectedPath);
+            const docSnapshot = await docRef.get();
+            
+            if (!docSnapshot.exists) {
+              showMessage('Cliente no encontrado', 'error');
+              loadingOverlay.style.display = 'none';
+              return;
+            }
+
+            // Renderizar solo ese cliente en la tabla
+            const client = docSnapshot.data();
+            const path = docSnapshot.ref.path;
+            const createdByFullName = await getUserName(client.creadoPor);
+            const creationDate = client.createdAt ? dayjs(client.createdAt.toDate()).format('DD/MM/YYYY') : 'N/A';
+            const servicesCount = client.offerings ? client.offerings.length : 0;
+            const servicesHTML = `
+              <div class="service-summary">
+                <span class="service-count">${servicesCount} Servicio${servicesCount !== 1 ? 's' : ''}</span>
+                <a class="view-details-link" data-path="${path}"><i class="fas fa-list-ul"></i> Ver Detalles</a>
+              </div>`;
+
+            let actions = `
+              <div class="action-icons-wrapper">
+                <i class="fas fa-pencil-alt action-icon edit-details-btn" data-path="${path}" title="Editar Detalles"></i>
+                <i class="fas fa-cogs action-icon edit-services-btn" data-path="${path}" title="Editar Servicios"></i>
+                <i class="fas fa-trash-alt action-icon delete-btn" data-path="${path}" title="Eliminar Registro"></i>
+              </div>`;
+
+            let rowHtml = '';
+            if (status === CLIENT_STATUS.PENDING) {
+              actions += `<button class="btn-action btn-action-won mark-won-btn" data-path="${path}">
+                            <i class="fas fa-check"></i> GANADO
+                          </button>`;
+              rowHtml = `
+                <tr data-doc-path="${path}">
+                  <td><span class="code-text">${creationDate}</span></td>
+                  <td><span class="client-name-highlight">${client.name || 'N/A'}</span></td>
+                  <td><span class="code-text">${client.ruc || 'N/A'}</span></td>
+                  <td>${servicesHTML}</td>
+                  <td>${createdByFullName}</td>
+                  <td>${actions}</td>
+                </tr>`;
+            } else {
+              const implementationDate = client.implementationDate
+                ? dayjs(client.implementationDate).format('DD/MM/YYYY')
+                : 'Pendiente';
+              let remainingMonthsText = 'N/A', textColorClass = '';
+              const duration = client.offerings?.[0]?.frequency || 0;
+              if (client.implementationDate && duration > 0) {
+                const expirationDate = dayjs(client.implementationDate).add(duration, 'month');
+                const remaining = expirationDate.diff(dayjs(), 'month');
+                remainingMonthsText = remaining < 0 ? 0 : remaining;
+                if (remaining <= 6) textColorClass = 'text-danger';
+              }
+              actions += `<button class="btn-action btn-action-manage exec-pending-btn" data-path="${path}">
+                            <i class="fas fa-tasks"></i> Gestionar
+                          </button>`;
+              rowHtml = `
+                <tr data-doc-path="${path}">
+                  <td><span class="code-text">${creationDate}</span></td>
+                  <td><span class="code-text">${implementationDate}</span></td>
+                  <td><span class="client-name-highlight">${client.name || 'N/A'}</span></td>
+                  <td><span class="code-text">${client.ruc || 'N/A'}</span></td>
+                  <td>${servicesHTML}</td>
+                  <td>${createdByFullName}</td>
+                  <td class="${textColorClass}">${remainingMonthsText}</td>
+                  <td>${actions}</td>
+                </tr>`;
+            }
+
+            // Limpiar tabla y mostrar solo este cliente
+            tableBody.innerHTML = rowHtml;
+
+            // Rehabilitar event listeners para esta fila
+            const row = tableBody.querySelector('tr');
+            row.querySelectorAll('.action-icon, .view-details-link').forEach(el => {
+              el.addEventListener('click', (ev) => {
+                const target = ev.currentTarget;
+                const path = target.dataset.path;
+                let mode = 'view';
+                if (target.classList.contains('edit-details-btn'))   mode = 'edit';
+                if (target.classList.contains('edit-services-btn'))  mode = 'edit-services';
+
+                if (target.classList.contains('delete-btn')) {
+                  showDeleteConfirmationModal(path);
+                } else {
+                  handleClientAction(path, mode);
+                }
+              });
+            });
+
+            row.querySelector('.mark-won-btn')?.addEventListener('click', (btn) => {
+              openWonDatePickerModal(btn.target.dataset.path);
+            });
+
+            row.querySelector('.exec-pending-btn')?.addEventListener('click', (btn) => {
+              openExecutionModal(btn.target.dataset.path, 'in_process');
+            });
+
+          } catch (error) {
+            console.error('Error cargando cliente:', error);
+            showMessage('Error al cargar el cliente', 'error');
+          } finally {
+            loadingOverlay.style.display = 'none';
+          }
+        });
+        
+        item.addEventListener('mouseenter', () => {
+          suggestionsDropdown.querySelectorAll('.suggestion-item').forEach(s => s.classList.remove('selected'));
+          item.classList.add('selected');
+        });
+      });
+      
+      // Filtrar tabla mientras se busca (mostrar solo coincidencias en la página actual)
+      const matchPaths = new Set(matches.map(m => m.path));
+      tableBody.querySelectorAll('tr').forEach(row => {
+        const rowPath = row.dataset.docPath;
+        row.style.display = matchPaths.has(rowPath) ? '' : 'none';
+      });
+    });
+    
+    // Cerrar sugerencias al hacer clic fuera
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest(`#${searchInputId}`) && !e.target.closest(`#${suggestionsId}`)) {
+        suggestionsDropdown.classList.remove('active');
+      }
+    });
+  }
+  
+  function highlightMatch(text, query) {
+    const regex = new RegExp(`(${query})`, 'gi');
+    return text.replace(regex, '<strong style="color: var(--accent-color); font-weight: 600;">$1</strong>');
   }
 
   // =========================
@@ -829,6 +1144,15 @@ document.addEventListener('DOMContentLoaded', () => {
   async function handleDelete(docPath) {
     loadingOverlay.style.display = 'flex';
     try {
+      // Validar que la ruta sea correcta
+      if (!docPath || docPath.includes('undefined')) {
+        console.error('Ruta inválida:', docPath);
+        showMessage('Error: ruta de documento inválida.', 'error');
+        loadingOverlay.style.display = 'none';
+        return;
+      }
+      
+      console.log('Eliminando documento:', docPath);
       await db.doc(docPath).delete();
       showMessage('Registro eliminado con éxito.', 'success');
       loadDashboardData();
@@ -1162,78 +1486,87 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createOfferingRow(category, offeringData = {}) {
     const row = document.createElement('div');
-    row.className = 'offering-row';
+    row.className = 'offering-row premium-light-row';
 
     const options = buildOptionsHTML(category, offeringData.name);
+    const totalVal = Number(offeringData.total || 0).toFixed(2);
 
     row.innerHTML = `
-      <div class="offering-row-header">
-        <div class="offering-row-select">
-          <select class="offering-name">
-            <option value="">Seleccionar...</option>
-            ${options}
-          </select>
-          <button type="button" class="btn-add-option" title="Agregar opción"><i class="fas fa-plus"></i></button>
+      <div class="offering-row-grid">
+        <!-- Fila Superior: Nombre y Acciones -->
+        <div class="offering-grid-header">
+          <div class="offering-name-wrapper">
+            <select class="offering-name">
+              <option value="">Seleccionar servicio...</option>
+              ${options}
+            </select>
+            <button type="button" class="btn-add-option-mini" title="Nueva opción"><i class="fas fa-plus"></i></button>
+          </div>
+          <button type="button" class="remove-offering-row-btn-mini" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
+          <input type="hidden" class="offering-category" value="${category}">
         </div>
-        <div class="offering-row-actions">
-          <button type="button" class="remove-offering-row-btn" title="Quitar fila">&times;</button>
+
+        <!-- Fila Inferior: Detalles -->
+        <div class="offering-grid-details">
+          <div class="detail-field">
+            <span class="detail-label">Unidades</span>
+            <input type="number" class="offering-quantity" min="1" value="${offeringData.quantity ?? 1}" placeholder="Cant.">
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Modalidad</span>
+            <select class="offering-provision-mode">
+              <option value="Por todo el contrato" ${offeringData.provisionMode === 'Por todo el contrato' ? 'selected' : ''}>Por Contrato</option>
+              <option value="Por cada mes" ${offeringData.provisionMode === 'Por cada mes' ? 'selected' : ''}>Mensual</option>
+            </select>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Frecuencia</span>
+            <select class="offering-frequency">
+              <option value="1" ${offeringData.frequency == 1 ? 'selected' : ''}>1 mes</option>
+              <option value="6" ${offeringData.frequency == 6 ? 'selected' : ''}>6 meses</option>
+              <option value="12" ${offeringData.frequency == 12 ? 'selected' : ''}>12 meses</option>
+              <option value="24" ${offeringData.frequency == 24 ? 'selected' : ''}>24 meses</option>
+              <option value="36" ${offeringData.frequency == 36 ? 'selected' : ''}>36 meses</option>
+            </select>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Meses</span>
+            <input type="number" class="offering-months" min="1" value="${offeringData.months ?? (offeringData.frequency ?? 6)}" placeholder="Meses">
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Costo Prov.</span>
+            <input type="number" class="offering-cost" min="0" step="0.01" value="${offeringData.cost ?? 0}" placeholder="Costo">
+          </div>
+          <div class="detail-field total-field">
+            <span class="detail-label">Total</span>
+            <input type="text" class="offering-total" value="S/ ${totalVal}" readonly>
+          </div>
         </div>
-        <input type="hidden" class="offering-category" value="${category}">
-      </div>
-      <div class="offering-row-body">
-        <label>Modalidad
-          <select class="offering-provision-mode">
-            <option ${offeringData.provisionMode === 'Por todo el contrato' ? 'selected' : ''}>Por todo el contrato</option>
-            <option ${offeringData.provisionMode === 'Por cada mes' ? 'selected' : ''}>Por cada mes</option>
-          </select>
-        </label>
-        <label>Frecuencia (meses)
-          <input type="number" class="offering-frequency" min="1" value="${offeringData.frequency ?? 6}">
-        </label>
-        <label>Unidades
-          <input type="number" class="offering-quantity" min="1" value="${offeringData.quantity ?? 1}">
-        </label>
-        <label>Meses
-          <input type="number" class="offering-months" min="1" value="${offeringData.months ?? (offeringData.frequency ?? 6)}">
-        </label>
-        <label>Costo proveedor (S/.)
-          <input type="number" class="offering-cost" min="0" step="0.01" value="${offeringData.cost ?? 0}">
-        </label>
-        <label>Total
-          <input type="text" class="offering-total" value="S/ ${(Number(offeringData.total || 0)).toFixed(2)}" readonly>
-        </label>
       </div>
     `;
 
     // Lógica de totales
     const compute = () => {
-      const q   = parseFloat(row.querySelector('.offering-quantity').value)  || 1;
-      const c   = parseFloat(row.querySelector('.offering-cost').value)      || 0;
-      const pm  = row.querySelector('.offering-provision-mode').value;
-      const mos = parseFloat(row.querySelector('.offering-months').value)    || parseFloat(row.querySelector('.offering-frequency').value) || 6;
+      const q = parseFloat(row.querySelector('.offering-quantity').value) || 0;
+      const c = parseFloat(row.querySelector('.offering-cost').value) || 0;
+      const pm = row.querySelector('.offering-provision-mode').value;
+      const f = parseFloat(row.querySelector('.offering-frequency').value) || 6;
+      const mos = parseFloat(row.querySelector('.offering-months').value) || f;
+      
       const total = (pm === 'Por todo el contrato') ? (c * q) : ((c * q) * mos);
       row.querySelector('.offering-total').value = `S/ ${total.toFixed(2)}`;
     };
 
     row.addEventListener('input', compute);
     row.addEventListener('change', compute);
-    row.querySelector('.remove-offering-row-btn')?.addEventListener('click', () => row.remove());
+    row.querySelector('.remove-offering-row-btn-mini')?.addEventListener('click', () => row.remove());
     
-    // Event listener para el botón "+" de agregar opción dentro de cada fila
-    const addOptionBtn = row.querySelector('.btn-add-option');
-    console.log('🔧 Configurando botón + en fila:', !!addOptionBtn);
-    
+    // Event listener para el botón "+"
+    const addOptionBtn = row.querySelector('.btn-add-option-mini');
     addOptionBtn?.addEventListener('click', (e) => {
-      console.log('🟢 Click en botón + de agregar opción');
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        const sel = row.querySelector('.offering-name');
-        console.log('📍 Select encontrado:', !!sel, 'Categoría:', category);
-        showAddOptionModal(category, sel);
-      } catch (error) {
-        console.error('❌ Error al abrir modal de agregar opción:', error);
-      }
+      e.preventDefault(); e.stopPropagation();
+      const sel = row.querySelector('.offering-name');
+      showAddOptionModal(category, sel);
     });
 
     if (offeringData.name) compute();
@@ -1248,10 +1581,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openExecutionModal(docPath, mode) {
     currentExecPath = docPath;
-    const body = document.getElementById('execution-items-body');
+    const container = document.getElementById('execution-items-list');
     const title = document.getElementById('execution-modal-title');
     title.textContent = mode === 'executed' ? 'Marcar Servicios como Ejecutados' : 'Marcar Servicios en Proceso';
-    body.innerHTML = '<tr><td colspan="3">Cargando...</td></tr>';
+    container.innerHTML = `
+      <div class="execution-loading">
+        <div class="mini-spinner"></div>
+        <p>Cargando servicios...</p>
+      </div>
+    `;
+    
     openModal(execOverlay);
 
     db.doc(docPath).get().then(snap => {
@@ -1262,86 +1601,260 @@ document.addEventListener('DOMContentLoaded', () => {
         : items.map(o => ({ name:o.name, status:'pending' }));
 
       const statusMap = new Map(execOfferings.map(x => [x.name, x.status]));
-      body.innerHTML = '';
-      items.forEach(o => {
+      
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="no-services-message">
+            <i class="fas fa-inbox"></i>
+            <p>No hay servicios contratados</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+      items.forEach((o, index) => {
         const cur = statusMap.get(o.name) || 'pending';
         const isExecuted = cur === 'executed';
-        const labels = { pending:'Pendiente', in_process:'En Proceso', executed:'Ejecutado' };
-        let btnHTML = '';
+        const statusLabels = { 
+          pending: 'Pendiente',
+          in_process: 'En Proceso',
+          executed: 'Ejecutado'
+        };
+        
+        const itemEl = document.createElement('div');
+        itemEl.className = 'execution-item';
+        itemEl.dataset.name = o.name;
+        itemEl.dataset.status = cur;
+        itemEl.style.animation = `slideInUp 0.3s ease-out ${index * 50}ms forwards`;
+        itemEl.style.opacity = '0';
+        
+        let statusColor = 'var(--text-secondary)';
+        let statusBgColor = '#f0f0f0';
+        let statusIcon = 'fas fa-clock';
+        
+        if (cur === 'executed') {
+          statusColor = '#4caf50';
+          statusBgColor = 'rgba(76, 175, 80, 0.1)';
+          statusIcon = 'fas fa-check-circle';
+        } else if (cur === 'in_process') {
+          statusColor = '#ff9800';
+          statusBgColor = 'rgba(255, 152, 0, 0.1)';
+          statusIcon = 'fas fa-spinner';
+        }
+
         if (isExecuted) {
-          btnHTML = `<button class="modal-button btn-modal-secondary btn-xs" disabled>Ejecutado</button>`;
+          itemEl.innerHTML = `
+            <div class="execution-item-content">
+              <div class="execution-service-info">
+                <div class="execution-service-name">${o.name}</div>
+                <div class="execution-service-category">${o.category || 'Sin categoría'}</div>
+              </div>
+              <div class="execution-status-badge" style="background-color: ${statusBgColor}; color: ${statusColor};">
+                <i class="${statusIcon}"></i>
+                <span>${statusLabels[cur]}</span>
+              </div>
+              <div class="execution-item-action">
+                <button class="execution-item-disabled" disabled title="Este servicio ya está ejecutado">
+                  <i class="fas fa-check"></i>
+                </button>
+              </div>
+            </div>
+          `;
+          itemEl.classList.add('execution-item-disabled-state');
         } else {
           const next = mode === 'executed' ? 'executed' : 'in_process';
-          const txt  = mode === 'executed' ? 'Ejecutado' : 'En Proceso';
-          btnHTML = `<button class="modal-button btn-modal-primary btn-xs mark-exec-item" data-next-status="${next}">${txt}</button>`;
+          const btnText = mode === 'executed' ? 'Ejecutado' : 'En Proceso';
+          const btnIcon = mode === 'executed' ? 'fa-check-double' : 'fa-arrow-right';
+          
+          itemEl.innerHTML = `
+            <div class="execution-item-content">
+              <div class="execution-service-info">
+                <div class="execution-service-name">${o.name}</div>
+                <div class="execution-service-category">${o.category || 'Sin categoría'}</div>
+              </div>
+              <div class="execution-status-badge" style="background-color: ${statusBgColor}; color: ${statusColor};">
+                <i class="${statusIcon}"></i>
+                <span>${statusLabels[cur]}</span>
+              </div>
+              <div class="execution-item-action">
+                <button class="execution-item-btn mark-exec-item" data-next-status="${next}" data-service="${o.name}">
+                  <i class="fas ${btnIcon}"></i>
+                  <span>${btnText}</span>
+                </button>
+              </div>
+            </div>
+          `;
         }
-        const tr = document.createElement('tr');
-        tr.dataset.name = o.name;
-        tr.innerHTML = `
-          <td>${o.name}</td>
-          <td><span class="badge ${isExecuted ? 'badge-success' : (cur === 'in_process' ? 'badge-warning' : 'badge-default')}">${labels[cur]}</span></td>
-          <td>${btnHTML}</td>`;
-        body.appendChild(tr);
+        
+        container.appendChild(itemEl);
+        
+        // Event listener para cambio de estado
+        const btn = itemEl.querySelector('.mark-exec-item');
+        if (btn) {
+          btn.addEventListener('click', () => {
+            handleExecutionItemChange(itemEl, btn.dataset.nextStatus, statusLabels);
+          });
+        }
       });
+
+      // Agregar event listeners a los botones del modal
+      const cancelBtn = document.getElementById('execution-modal-cancel');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => closeModal(execOverlay));
+      }
+    }).catch(err => {
+      console.error('Error cargando servicios:', err);
+      container.innerHTML = `
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Error al cargar los servicios</p>
+        </div>
+      `;
     });
+  }
+
+  function handleExecutionItemChange(itemEl, newStatus, statusLabels) {
+    const serviceName = itemEl.dataset.name;
+    
+    // Animar el cambio
+    itemEl.classList.add('execution-item-updating');
+    
+    const statusColors = {
+      pending: { color: '#6c757d', bgColor: '#f0f0f0', icon: 'fas fa-clock' },
+      in_process: { color: '#ff9800', bgColor: 'rgba(255, 152, 0, 0.1)', icon: 'fas fa-spinner' },
+      executed: { color: '#4caf50', bgColor: 'rgba(76, 175, 80, 0.1)', icon: 'fas fa-check-circle' }
+    };
+    
+    const newStatusInfo = statusColors[newStatus];
+    
+    // Esperar a que termine la animación
+    setTimeout(() => {
+      // Actualizar el badge de estado
+      const badge = itemEl.querySelector('.execution-status-badge');
+      if (badge) {
+        badge.style.backgroundColor = newStatusInfo.bgColor;
+        badge.style.color = newStatusInfo.color;
+        badge.innerHTML = `
+          <i class="${newStatusInfo.icon}"></i>
+          <span>${statusLabels[newStatus]}</span>
+        `;
+      }
+      
+      // Reemplazar el botón con uno deshabilitado
+      const actionDiv = itemEl.querySelector('.execution-item-action');
+      if (actionDiv) {
+        actionDiv.innerHTML = `
+          <button class="execution-item-btn-success" disabled>
+            <i class="fas fa-check"></i>
+            <span>Marcado</span>
+          </button>
+        `;
+      }
+      
+      // Actualizar el dataset del estado
+      itemEl.dataset.status = newStatus;
+      itemEl.classList.remove('execution-item-updating');
+      itemEl.classList.add('execution-item-changed');
+      
+      // Mostrar feedback
+      showStatusChangeNotification(serviceName, newStatus, statusLabels);
+    }, 300);
+  }
+
+  function showStatusChangeNotification(serviceName, status, statusLabels) {
+    const notification = document.createElement('div');
+    notification.className = 'execution-notification';
+    notification.innerHTML = `
+      <div class="execution-notification-content">
+        <i class="fas fa-check-circle"></i>
+        <div>
+          <strong>${serviceName}</strong>
+          <p>Marcado como ${statusLabels[status].toLowerCase()}</p>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+      notification.classList.remove('show');
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
   }
 
   async function saveExecutionModal() {
     const saveBtn = document.getElementById('execution-modal-save');
     saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
     loadingOverlay.style.display = 'flex';
     try {
       const ref = db.doc(currentExecPath);
       const snap = await ref.get();
       const data = snap.data() || {};
-      const rows = Array.from(document.querySelectorAll('#execution-items-body tr'));
+      const items = Array.from(document.querySelectorAll('#execution-items-list .execution-item'));
       let hasChanges = false, allExecuted = true, becameInProcess = false;
 
       const statusMap = new Map((data.execution?.offerings || []).map(x => [x.name, { ...x }]));
 
-      rows.forEach(tr => {
-        const name = tr.dataset.name;
-        const btn = tr.querySelector('.mark-exec-item');
-        if (btn) {
+      items.forEach(itemEl => {
+        const name = itemEl.dataset.name;
+        const currentStatus = itemEl.dataset.status;
+        const oldStatus = statusMap.get(name)?.status || 'pending';
+        
+        if (currentStatus !== oldStatus) {
           hasChanges = true;
-          const newStatus = btn.dataset.nextStatus;
-          const o = statusMap.get(name) || { name, status:'pending' };
-          if (o.status !== newStatus) {
-            o.status = newStatus;
-            o.statusChangedAt = firebase.firestore.Timestamp.now();
-            if (newStatus === 'in_process') becameInProcess = true;
-            statusMap.set(name, o);
-          }
+          const o = statusMap.get(name) || { name, status: 'pending' };
+          o.status = currentStatus;
+          o.statusChangedAt = firebase.firestore.Timestamp.now();
+          if (currentStatus === 'in_process') becameInProcess = true;
+          statusMap.set(name, o);
         }
       });
 
-      if (!hasChanges) { showMessage('No se realizaron cambios.', 'warning'); return; }
+      if (!hasChanges) { 
+        showMessage('No se realizaron cambios.', 'warning');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-check"></i> Guardar Cambios';
+        loadingOverlay.style.display = 'none';
+        return; 
+      }
 
       const updated = Array.from(statusMap.values());
       updated.forEach(o => { if (o.status !== 'executed') allExecuted = false; });
       const overall = allExecuted
         ? 'executed'
-        : (updated.some(o => o.status === 'in_process' || o.status === 'executed') ? 'in_process' : 'pending');
+        : (becameInProcess || updated.some(o => o.status === 'in_process') ? 'in_process' : 'pending');
 
-      const updates = {
+      console.log('📝 Guardando ejecución:', {
+        path: currentExecPath,
+        updated: updated,
+        overall: overall
+      });
+
+      await ref.update({
         'execution.offerings': updated,
-        'execution.status': overall,
-        'execution.updatedAt': firebase.firestore.FieldValue.serverTimestamp()
-      };
-      if (becameInProcess && !data.stateDates?.inProcessAt) updates['stateDates.inProcessAt'] = firebase.firestore.FieldValue.serverTimestamp();
-      if (allExecuted    && !data.stateDates?.executedAt)   updates['stateDates.executedAt']  = firebase.firestore.FieldValue.serverTimestamp();
+        'execution.overallStatus': overall,
+        'execution.lastUpdated': firebase.firestore.Timestamp.now()
+      });
 
-      await ref.update(updates);
-      showMessage('Estados de ejecución actualizados.', 'success');
-      closeModal(execOverlay);
+      console.log('✅ Datos guardados correctamente');
+      showMessage(`Cambios guardados exitosamente. Estado general: ${overall}.`, 'success');
+      closeModal(document.getElementById('execution-modal-overlay'));
       loadExecList();
-      loadTableData(CLIENT_STATUS.WON, 'initial');
     } catch (e) {
-      console.error('Error guardando ejecución:', e);
-      showMessage('No se pudieron guardar los cambios.', 'error');
+      console.error('❌ Error guardando cambios:', e);
+      console.error('Código de error:', e.code);
+      console.error('Mensaje:', e.message);
+      showMessage(`Error: ${e.message || 'No se pudieron guardar los cambios.'}`, 'error');
     } finally {
-      loadingOverlay.style.display = 'none';
       saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fas fa-check"></i> Guardar Cambios';
+      loadingOverlay.style.display = 'none';
     }
   }
 

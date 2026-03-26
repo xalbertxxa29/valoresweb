@@ -882,10 +882,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createOfferingRow(category, offeringData = {}) {
     const wrapper = document.createElement('div');
-    wrapper.className = 'offering-row';
+    wrapper.className = 'offering-row-container premium-light-row';
 
     const options = category === VIGILANCIA_CATEGORY ? vigNames : tecNames;
-    // Si el doc trae un name que no está en el catálogo, igual se muestra
     const names = [...new Set([...(options || []), offeringData.name].filter(Boolean))];
 
     const selectOptions =
@@ -903,28 +902,34 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <input type="hidden" class="offering-category" value="${category}">
       </div>
-      <div class="offering-row-body">
-        <label>Modalidad
+      <div class="offering-row-grid">
+        <div class="detail-field">
+          <span class="detail-label">MODALIDAD</span>
           <select class="offering-provision-mode">
-            <option value="Por todo el contrato" ${offeringData.provisionMode === 'Por todo el contrato' ? 'selected' : ''}>Por todo el contrato</option>
-            <option value="Por cada mes" ${offeringData.provisionMode === 'Por cada mes' ? 'selected' : ''}>Por cada mes</option>
+            <option value="Por todo el contrato" ${offeringData.provisionMode === 'Por todo el contrato' ? 'selected' : ''}>Contrato</option>
+            <option value="Por cada mes" ${offeringData.provisionMode === 'Por cada mes' ? 'selected' : ''}>Mensual</option>
           </select>
-        </label>
-        <label>Frecuencia (meses)
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">FRECUENCIA</span>
           <input type="number" class="offering-frequency" min="1" value="${offeringData.frequency || 6}">
-        </label>
-        <label>Unidades
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">UNIDADES</span>
           <input type="number" class="offering-quantity" min="1" value="${offeringData.quantity || 1}">
-        </label>
-        <label>Meses
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">MESES</span>
           <input type="number" class="offering-months" min="1" value="${offeringData.months || (offeringData.frequency || 6)}">
-        </label>
-        <label>Costo proveedor (S/)
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">COSTO PROV.</span>
           <input type="number" class="offering-cost" min="0" step="0.01" value="${offeringData.cost || 0}">
-        </label>
-        <label>Total
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">TOTAL</span>
           <input type="text" class="offering-total" value="S/ ${totalVal.toFixed(2)}" readonly>
-        </label>
+        </div>
       </div>
     `;
 
@@ -933,8 +938,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const cost = parseFloat(wrapper.querySelector('.offering-cost').value) || 0;
       const pm   = wrapper.querySelector('.offering-provision-mode').value;
       let total  = 0;
-      if (pm === 'Por todo el contrato') total = cost * quantity;
-      else {
+      if (pm === 'Por todo el contrato') {
+        total = cost * quantity;
+      } else {
         const freq = parseFloat(wrapper.querySelector('.offering-frequency').value) || 6;
         total = (cost * quantity) * freq;
       }
@@ -942,7 +948,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     wrapper.addEventListener('input', recalc);
     wrapper.addEventListener('change', recalc);
-    wrapper.querySelector('.remove-offering-row-btn').addEventListener('click', () => wrapper.remove());
+    wrapper.querySelector('.remove-offering-row-btn').addEventListener('click', () => {
+      wrapper.style.opacity = '0';
+      wrapper.style.transform = 'translateX(20px)';
+      setTimeout(() => wrapper.remove(), 300);
+    });
     recalc();
 
     return wrapper;

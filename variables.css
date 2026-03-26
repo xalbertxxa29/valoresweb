@@ -6,38 +6,43 @@
  */
 
 :root {
+  /* Forzar modo claro — evita que Chrome aplique dark mode del sistema */
+  color-scheme: light;
+
   /* ============================================
      COLORES - PALETA PRINCIPAL
      ============================================ */
   
   /* Colores Primarios */
   --color-primary: #1a3a6b;
-  --color-primary-light: #1f427a;
+  --color-primary-light: #2354a0;
   --color-primary-dark: #0f1f3a;
   
   /* Colores de Acento */
-  --color-accent: #00a896;
+  --color-accent: #0891b2;          /* Cian moderno — más armonioso con azul */
   --color-accent-cyan: #0094c8;
-  --color-accent-light: rgba(0, 168, 150, 0.1);
-  --color-accent-border: rgba(0, 168, 150, 0.2);
+  --color-accent-teal: #00a896;     /* Conservado para compatibilidad */
+  --color-accent-light: rgba(8, 145, 178, 0.1);
+  --color-accent-border: rgba(8, 145, 178, 0.2);
   
   /* Colores de Estado */
-  --color-danger: #e70909;
+  --color-danger: #dc2626;          /* Rojo más refinado, menos agresivo */
+  --color-danger-dark: #b91c1c;
   --color-danger-light: #ff6b6b;
   --color-warning: #f59e0b;
   --color-success: #10b981;
   --color-info: #3b82f6;
   
   /* Colores de Fondo */
-  --color-bg-light: #f4f7f6;
+  --color-bg-light: #eef1f8;        /* Gris-azulado suave — más moderno que #f4f7f6 */
   --color-bg-white: #ffffff;
   --color-bg-dark: #1a1a2e;
   --color-bg-darker: #0f1f3a;
   --color-bg-overlay: rgba(0, 0, 0, 0.5);
   
   /* Colores de Texto */
-  --color-text-primary: #33374d;
-  --color-text-secondary: #6c757d;
+  --color-text-primary: #1e293b;    /* Más oscuro para mejor contraste */
+  --color-text-secondary: #64748b;
   --color-text-light: #f1f5f9;
   --color-text-white: #ffffff;
   
@@ -159,17 +164,10 @@
 }
 
 /* ============================================
-   MODO OSCURO (OPCIONAL)
+   MODO OSCURO — DESACTIVADO INTENCIONALMENTE
+   La aplicación usa solo el modo claro.
+   Se mantiene color-scheme:light a nivel root.
    ============================================ */
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg-light: #1a1a2e;
-    --color-bg-white: #252535;
-    --color-text-primary: #e0e0e0;
-    --color-text-secondary: #a0a0a0;
-  }
-}
 
 /* ============================================
    PREFERENCIAS DE MOVIMIENTO
