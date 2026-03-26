@@ -897,12 +897,10 @@ document.addEventListener('DOMContentLoaded', () => {
     wrapper.innerHTML = `
       <div class="offering-row-header">
         <select class="offering-name">${selectOptions}</select>
-        <div class="offering-row-actions">
-          <button type="button" class="remove-offering-row-btn" title="Quitar fila">&times;</button>
-        </div>
+        <button type="button" class="remove-offering-row-btn-mini" title="Quitar fila">&times;</button>
         <input type="hidden" class="offering-category" value="${category}">
       </div>
-      <div class="offering-row-grid">
+      <div class="offering-grid-details">
         <div class="detail-field">
           <span class="detail-label">MODALIDAD</span>
           <select class="offering-provision-mode">
@@ -926,7 +924,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="detail-label">COSTO PROV.</span>
           <input type="number" class="offering-cost" min="0" step="0.01" value="${offeringData.cost || 0}">
         </div>
-        <div class="detail-field">
+        <div class="detail-field total-field">
           <span class="detail-label">TOTAL</span>
           <input type="text" class="offering-total" value="S/ ${totalVal.toFixed(2)}" readonly>
         </div>
@@ -948,7 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     wrapper.addEventListener('input', recalc);
     wrapper.addEventListener('change', recalc);
-    wrapper.querySelector('.remove-offering-row-btn').addEventListener('click', () => {
+    wrapper.querySelector('.remove-offering-row-btn-mini').addEventListener('click', () => {
       wrapper.style.opacity = '0';
       wrapper.style.transform = 'translateX(20px)';
       setTimeout(() => wrapper.remove(), 300);
