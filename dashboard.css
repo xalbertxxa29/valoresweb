@@ -1604,3 +1604,114 @@ table tbody tr:hover td {
 }
 
 
+/* ==========================================
+   NUEVO DISEÑO DE RANKING E INDICADORES (SOLICITUD)
+   ========================================== */
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.5rem 0;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rank-number {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fbbf24; /* Dorado para el # */
+  min-width: 24px;
+}
+
+.rank-name {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rank-bar-container {
+  flex: 1.5;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+
+.rank-bar-fill {
+  height: 100%;
+  background: #14b8a6; /* Teal/Cyan */
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.rank-count {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0d9488;
+  min-width: 20px;
+  text-align: right;
+}
+
+/* Registros por Tipo (Pills) */
+.service-type-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.type-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.type-badge {
+  padding: 0.3rem 0.8rem;
+  border-radius: 99px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.count-va { background: #f0fdfa; color: #14b8a6; }
+.count-vat { background: #eff6ff; color: #2563eb; }
+
+/* Barra de distribución bicolor */
+.distribution-container {
+  margin-top: 1.5rem;
+}
+
+.distribution-bar {
+  display: flex;
+  height: 10px;
+  width: 100%;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+}
+
+.dist-fill {
+  height: 100%;
+  transition: width 1s ease;
+}
+
+.dist-va { background: #14b8a6; }
+.dist-vat { background: #3b82f6; }
+
+.distribution-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}

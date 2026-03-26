@@ -367,86 +367,149 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function updateDashboardWidgets(clients) {
-    console.log('📊 updateDashboardWidgets - Clientes recibidos:', clients);
+  async function updateDashboardWidgets(clients) {
+    const nameToCategory = {}; // Podría mejorarse usando catálogos cargados
     let vaCount = 0, vatCount = 0;
-    let pendingExecCount = 0, inProcessExecCount = 0, executedCount = 0;
     const userRanking = {};
+    const serviceCounts = { pending: {}, won: {} };
+    const allServiceNames = new Set();
 
-    clients.forEach(client => {
-      console.log('📋 Procesando cliente:', { 
-        name: client.name, 
-        offerings: client.offerings,
-        execution: client.execution
-      });
-      
-      const userEmail = client.creadoPor || 'Desconocido';
+    clients.forEach(c => {
+      const userEmail = c.creadoPor || 'Desconocido';
       userRanking[userEmail] = (userRanking[userEmail] || 0) + 1;
 
-      if (Array.isArray(client.offerings)) {
-        client.offerings.forEach(offer => {
-          console.log('🎁 Oferta:', { name: offer.name, category: offer.category });
-          if ((offer.category || '').includes('Vigilancia')) vaCount++;
-          else if ((offer.category || '').includes('Tecnología') || (offer.category || '').includes('Tecnologia')) vatCount++;
-        });
-      }
+      if (Array.isArray(c.offerings)) {
+        c.offerings.forEach(o => {
+          const name = o.name || 'Sin nombre';
+          allServiceNames.add(name);
+          const bucket = c.clientStatus === 'Ofrecido' ? 'pending' : 'won';
+          serviceCounts[bucket][name] = (serviceCounts[bucket][name] || 0) + 1;
 
-      if (client.execution && Array.isArray(client.execution.offerings)) {
-        client.execution.offerings.forEach(execOffer => {
-          switch (execOffer.status) {
-            case 'in_process': inProcessExecCount++; break;
-            case 'executed':   executedCount++; break;
-            default:           pendingExecCount++; break;
-          }
+          if ((o.category || '').includes('Vigilancia')) vaCount++;
+          else if ((o.category || '').includes('Tecnología') || (o.category || '').includes('Tecnologia')) vatCount++;
         });
-      } else if (Array.isArray(client.offerings)) {
-        pendingExecCount += client.offerings.length;
       }
     });
 
-    console.log('📊 Conteos:', { vaCount, vatCount, pendingExecCount, inProcessExecCount, executedCount, userRanking });
-
+    // 1. Ranking de Registros (Top 3 con barras)
     const sortedUsers = Object.entries(userRanking).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const maxRankingCount = sortedUsers.length > 0 ? sortedUsers[0][1] : 1;
+    
+    const rankingHTML = await Promise.all(sortedUsers.map(async ([email, count], idx) => {
+      const display = await getUserName(email);
+      const percent = (count / maxRankingCount) * 100;
+      return `
+        <div class="ranking-item">
+          <span class="rank-number">#${idx + 1}</span>
+          <span class="rank-name" title="${display}">${display}</span>
+          <div class="rank-bar-container">
+            <div class="rank-bar-fill" style="width: ${percent}%"></div>
+          </div>
+          <span class="rank-count">${count}</span>
+        </div>`;
+    }));
+
     const userRankingList = document.getElementById('user-ranking-list');
     if (userRankingList) {
-      userRankingList.innerHTML =
-        sortedUsers.map(([email, count]) => `<li><span class="user-info">${email.split('@')[0]}</span><strong class="user-rank">${count}</strong></li>`).join('')
-        || '<li>No hay datos en esta zona.</li>';
+      userRankingList.innerHTML = rankingHTML.length ? rankingHTML.join('') : '<p>Sin datos.</p>';
     }
+
+    // 2. Contadores y Barra de Distribución (VA / VAT)
+    const totalV = vaCount + vatCount;
+    const vaPercent = totalV > 0 ? Math.round((vaCount / totalV) * 100) : 50;
+    const vatPercent = totalV > 0 ? (100 - vaPercent) : 50;
 
     const vaCountEl = document.getElementById('va-count');
     const vatCountEl = document.getElementById('vat-count');
-    
     if (vaCountEl) vaCountEl.textContent = vaCount;
     if (vatCountEl) vatCountEl.textContent = vatCount;
 
-    renderExecutionChart(pendingExecCount, inProcessExecCount, executedCount);
+    const vaBar = document.getElementById('va-percent-bar');
+    const vatBar = document.getElementById('vat-percent-bar');
+    if (vaBar) vaBar.style.width = `${vaPercent}%`;
+    if (vatBar) vatBar.style.width = `${vatPercent}%`;
+
+    const vaText = document.getElementById('va-percent-text');
+    const vatText = document.getElementById('vat-percent-text');
+    if (vaText) vaText.textContent = `${vaPercent}% VA`;
+    if (vatText) vatText.textContent = `${vatPercent}% VAT`;
+
+    // 3. Gráfico de Servicios (Ordenado y Horizontal)
+    try {
+      const allLabels = Array.from(allServiceNames);
+      const combined = allLabels.map(name => ({
+        name,
+        pending: serviceCounts.pending[name] || 0,
+        won: serviceCounts.won[name] || 0,
+        total: (serviceCounts.pending[name] || 0) + (serviceCounts.won[name] || 0)
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 15);
+
+      renderServicesChart(combined.map(i=>i.name), combined.map(i=>i.pending), combined.map(i=>i.won));
+    } catch (err) {
+      console.error('Error chart:', err);
+    }
   }
 
-  function renderExecutionChart(pending, inProcess, executed) {
+  function renderServicesChart(labels, pendingData, wonData) {
     const chartEl = document.getElementById('services-chart');
-    if (!chartEl) {
-      console.warn('⚠️ Elemento services-chart no encontrado');
-      return;
-    }
+    if (!chartEl) return;
     
     const ctx = chartEl.getContext('2d');
     if (servicesChart) servicesChart.destroy();
+    
     Chart.register(ChartDataLabels);
     servicesChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Pendiente de Ejecución', 'En Proceso', 'Ejecutado'],
-        datasets: [{ label: 'Cantidad de Servicios', data: [pending, inProcess, executed] }]
+        labels: labels.map(l => l.length > 18 ? l.substring(0, 18) + '...' : l),
+        datasets: [
+          {
+            label: 'Solicitudes Pendientes',
+            backgroundColor: 'rgba(251, 146, 60, 0.85)',
+            borderColor: '#ea580c',
+            borderWidth: 1,
+            borderRadius: 6,
+            data: pendingData,
+            maxBarThickness: 35
+          },
+          {
+            label: 'Clientes Ganados',
+            backgroundColor: 'rgba(20, 184, 166, 0.85)',
+            borderColor: '#0d9488',
+            borderWidth: 1,
+            borderRadius: 6,
+            data: wonData,
+            maxBarThickness: 35
+          }
+        ]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 1000, easing: 'easeOutElastic' },
         plugins: {
-          legend: { display: false },
-          datalabels: { color: '#ffffff', anchor: 'end', align: 'start', offset: -20,
-            font: { weight: 'bold' }, formatter: (v) => v > 0 ? v : '' }
+          datalabels: {
+            display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+            color: '#fff',
+            anchor: 'center',
+            align: 'center',
+            font: { weight: '800', size: 10 },
+            formatter: (v) => v
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleFont: { size: 13, weight: '700' },
+            callbacks: { title: (items) => labels[items[0].dataIndex] }
+          },
+          legend: { position: 'top', labels: { padding: 15, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } } }
         },
-        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        scales: {
+          x: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 }, precision: 0 } },
+          y: { stacked: true, grid: { display: false }, ticks: { font: { size: 11, weight: '500' }, color: '#1e293b' } }
+        }
       }
     });
   }

@@ -532,7 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updateIndicatorsAndChart(clients) {
-    // Construir mapa nombre->categoría a partir de lo cargado
     const nameToCategory = {};
     vigNames.forEach(n => { nameToCategory[n] = VIGILANCIA_CATEGORY; });
     tecNames.forEach(n => { nameToCategory[n] = TECNOLOGIA_CATEGORY; });
@@ -560,32 +559,67 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Top 3 por registros (resolviendo nombres)
+    // 1. Ranking de Registros (Top 3 con barras)
     const top3 = Object.entries(userRanking).sort((a,b) => b[1]-a[1]).slice(0,3);
-    const top3Resolved = await Promise.all(top3.map(async ([emailOrName, count]) => {
+    const maxRankingCount = top3.length > 0 ? top3[0][1] : 1;
+    
+    const top3Resolved = await Promise.all(top3.map(async ([emailOrName, count], idx) => {
       const display = await getUserName(emailOrName);
-      return { display, count };
+      const percent = (count / maxRankingCount) * 100;
+      return `
+        <div class="ranking-item">
+          <span class="rank-number">#${idx + 1}</span>
+          <span class="rank-name" title="${display}">${display}</span>
+          <div class="rank-bar-container">
+            <div class="rank-bar-fill" style="width: ${percent}%"></div>
+          </div>
+          <span class="rank-count">${count}</span>
+        </div>`;
     }));
-    const ul = document.getElementById('user-ranking-list');
-    if (ul) {
-      ul.innerHTML = top3Resolved.length
-        ? top3Resolved.map(i => `<li><span class="user-info">${i.display}</span><span class="user-rank">${i.count}</span></li>`).join('')
-        : '<li>No hay datos.</li>';
+
+    const rankingContainer = document.getElementById('user-ranking-list');
+    if (rankingContainer) {
+      rankingContainer.innerHTML = top3Resolved.length ? top3Resolved.join('') : '<p>Sin datos.</p>';
     }
 
-    // Contadores por tipo
+    // 2. Contadores y Barra de Distribución (VA / VAT)
+    const totalV = vaCount + vatCount;
+    const vaPercent = totalV > 0 ? Math.round((vaCount / totalV) * 100) : 50;
+    const vatPercent = totalV > 0 ? (100 - vaPercent) : 50;
+
     const vaCountEl = document.getElementById('va-count');
     const vatCountEl = document.getElementById('vat-count');
-    
     if (vaCountEl) vaCountEl.textContent = vaCount;
     if (vatCountEl) vatCountEl.textContent = vatCount;
 
-    // Gráfico
+    const vaBar = document.getElementById('va-percent-bar');
+    const vatBar = document.getElementById('vat-percent-bar');
+    if (vaBar) vaBar.style.width = `${vaPercent}%`;
+    if (vatBar) vatBar.style.width = `${vatPercent}%`;
+
+    const vaText = document.getElementById('va-percent-text');
+    const vatText = document.getElementById('vat-percent-text');
+    if (vaText) vaText.textContent = `${vaPercent}% VA`;
+    if (vatText) vatText.textContent = `${vatPercent}% VAT`;
+
+    // 3. Gráfico de Servicios (Ordenado y Horizontal)
     try {
-      const labels = Array.from(allServiceNames);
-      const pendingData = labels.map(n => serviceCounts.pending[n] || 0);
-      const wonData     = labels.map(n => serviceCounts.won[n] || 0);
-      renderServicesChart(labels, pendingData, wonData);
+      const allLabels = Array.from(allServiceNames);
+      // Combinar para ordenar
+      const combined = allLabels.map(name => ({
+        name,
+        pending: serviceCounts.pending[name] || 0,
+        won: serviceCounts.won[name] || 0,
+        total: (serviceCounts.pending[name] || 0) + (serviceCounts.won[name] || 0)
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 15); // Top 15 para legibilidad
+
+      const sortedLabels  = combined.map(i => i.name);
+      const pendingData = combined.map(i => i.pending);
+      const wonData     = combined.map(i => i.won);
+
+      renderServicesChart(sortedLabels, pendingData, wonData);
     } catch (err) {
       console.error('Error chart:', err);
     }
@@ -593,15 +627,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderServicesChart(labels, pendingData, wonData) {
     const chartEl = document.getElementById('services-chart');
-    if (!chartEl) {
-      console.warn('⚠️ Elemento services-chart no encontrado');
-      return;
-    }
+    if (!chartEl) return;
 
     const ctx = chartEl.getContext('2d');
     if (servicesChart) servicesChart.destroy();
 
-    // Empty state: si no hay datos, mostrar mensaje en lugar de gráfico vacío
     const hasData = labels.length > 0 && (pendingData.some(v => v > 0) || wonData.some(v => v > 0));
     const container = chartEl.closest('.chart-container-full');
     const existingEmpty = container ? container.querySelector('.chart-empty-state') : null;
@@ -614,8 +644,8 @@ document.addEventListener('DOMContentLoaded', () => {
       emptyDiv.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:320px;color:#94a3b8;gap:1rem;">
           <svg width="56" height="56" fill="none" viewBox="0 0 24 24" stroke="currentColor" opacity="0.4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-          <p style="font-size:1rem;font-weight:600;color:#64748b;margin:0;">A\u00fan no hay servicios registrados</p>
-          <p style="font-size:0.85rem;color:#94a3b8;margin:0;">Los datos aparecer\u00e1n aqu\u00ed cuando se registren clientes.</p>
+          <p style="font-size:1rem;font-weight:600;color:#64748b;margin:0;">Aún no hay servicios registrados</p>
+          <p style="font-size:0.85rem;color:#94a3b8;margin:0;">Los datos aparecerán aquí cuando se registren clientes.</p>
         </div>`;
       if (container) container.appendChild(emptyDiv);
       return;
@@ -624,12 +654,11 @@ document.addEventListener('DOMContentLoaded', () => {
     chartEl.style.display = '';
     Chart.register(ChartDataLabels);
 
-    // Truncar etiquetas largas para el eje X
     const truncateLabel = (label, max) => {
-      max = max || 20;
-      return label.length > max ? label.substring(0, max) + '\u2026' : label;
+      max = max || 18;
+      return label.length > max ? label.substring(0, max) + '...' : label;
     };
-    const shortLabels = labels.map(function(l) { return truncateLabel(l); });
+    const shortLabels = labels.map(l => truncateLabel(l));
 
     servicesChart = new Chart(ctx, {
       type: 'bar',
@@ -638,57 +667,62 @@ document.addEventListener('DOMContentLoaded', () => {
         datasets: [
           {
             label: 'Solicitudes Pendientes',
-            backgroundColor: 'rgba(251, 146, 60, 0.8)',
-            borderColor: 'rgba(234, 88, 12, 0.9)',
+            backgroundColor: 'rgba(251, 146, 60, 0.85)',
+            borderColor: '#ea580c',
             borderWidth: 1,
-            borderRadius: 4,
-            data: pendingData
+            borderRadius: 6,
+            data: pendingData,
+            maxBarThickness: 35
           },
           {
             label: 'Clientes Ganados',
-            backgroundColor: 'rgba(34, 197, 94, 0.8)',
-            borderColor: 'rgba(22, 163, 74, 0.9)',
+            backgroundColor: 'rgba(20, 184, 166, 0.85)',
+            borderColor: '#0d9488',
             borderWidth: 1,
-            borderRadius: 4,
-            data: wonData
+            borderRadius: 6,
+            data: wonData,
+            maxBarThickness: 35
           }
         ]
       },
       options: {
+        indexAxis: 'y', // HACE EL GRÁFICO HORIZONTAL
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 700, easing: 'easeInOutQuart' },
+        animation: { duration: 1000, easing: 'easeOutElastic' },
         plugins: {
           datalabels: {
-            display: function(ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; },
+            display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
             color: '#fff',
-            anchor: 'end',
-            align: 'start',
-            offset: -18,
-            font: { weight: 'bold', size: 11 },
-            formatter: function(v) { return v || ''; }
+            anchor: 'center',
+            align: 'center',
+            font: { weight: '800', size: 11 },
+            formatter: (v) => v
           },
           tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 12,
+            titleFont: { size: 14, weight: '700' },
             callbacks: {
-              title: function(items) { return labels[items[0].dataIndex] || shortLabels[items[0].dataIndex]; }
+              title: (items) => labels[items[0].dataIndex]
             }
           },
           legend: {
             position: 'top',
-            labels: { padding: 16, usePointStyle: true, pointStyle: 'rectRounded', font: { size: 12 } }
+            labels: { padding: 20, usePointStyle: true, pointStyle: 'circle', font: { size: 12, weight: '500' } }
           }
         },
         scales: {
           x: {
             stacked: true,
-            ticks: { maxRotation: 45, minRotation: 30, font: { size: 11 }, color: '#64748b' },
-            grid: { display: false }
+            beginAtZero: true,
+            grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
+            ticks: { font: { size: 11 }, color: '#64748b', precision: 0 }
           },
           y: {
             stacked: true,
-            beginAtZero: true,
-            ticks: { font: { size: 11 }, color: '#64748b', precision: 0 },
-            grid: { color: 'rgba(0,0,0,0.06)' }
+            grid: { display: false, drawBorder: false },
+            ticks: { font: { size: 12, weight: '500' }, color: '#1e293b' }
           }
         }
       }

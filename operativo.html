@@ -95,17 +95,28 @@
         <div class="right-column">
           <div class="indicator-card">
             <h3><i class="fas fa-medal"></i> Ranking de Registros</h3>
-            <ul id="user-ranking-list"></ul>
+            <div id="user-ranking-list" class="ranking-list"></div>
           </div>
           <div class="indicator-card">
             <h3><i class="fas fa-tags"></i> Registros por Tipo</h3>
-            <div class="service-type-count">
-              <span>Valor Agregado</span>
-              <strong id="va-count">0</strong>
+            <div class="service-type-row">
+              <span class="type-label">Valor Agregado</span>
+              <span id="va-count" class="type-badge count-va">0</span>
             </div>
-            <div class="service-type-count">
-              <span>VA con Tecnología</span>
-              <strong id="vat-count">0</strong>
+            <div class="service-type-row">
+              <span class="type-label">VA con Tecnología</span>
+              <span id="vat-count" class="type-badge count-vat">0</span>
+            </div>
+            
+            <div class="distribution-container">
+              <div class="distribution-bar">
+                <div id="va-percent-bar" class="dist-fill dist-va" style="width: 50%"></div>
+                <div id="vat-percent-bar" class="dist-fill dist-vat" style="width: 50%"></div>
+              </div>
+              <div class="distribution-labels">
+                <span id="va-percent-text">0% VA</span>
+                <span id="vat-percent-text">0% VAT</span>
+              </div>
             </div>
           </div>
         </div>
